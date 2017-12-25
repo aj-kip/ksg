@@ -65,7 +65,6 @@ public:
     void assign_font_if_found(const char * field_name, Text & text);
 
 private:
-
     const StylesField & find_field(const char * field_name) const;
 
     StylesField find_field_nothrow(const char * field_name) const noexcept;

@@ -82,6 +82,11 @@ public:
 
     enum { NO_SIZE_LIMIT };
 
+    struct TextSize {
+        TextSize(): width(0.f), height(0.f) {}
+        float width, height;
+    };
+
     Text();
 
     Text(const Text &);
@@ -150,8 +155,12 @@ public:
 
     void swap(Text &);
 
-private:
+    TextSize measure_text(const UString &);
 
+    static TextSize measure_text
+        (const sf::Font &, unsigned character_size, const UString &);
+
+private:
     using LineBreakList = std::vector<int>;
     using VertexContainer = std::vector<sf::Vertex>;
     using UChar = UString::value_type;

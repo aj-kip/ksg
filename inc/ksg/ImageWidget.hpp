@@ -75,7 +75,6 @@ public:
     void accept(const Visitor &) const override;
 
 private:
-
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
     TextureMultiType m_texture_storage;

@@ -95,7 +95,6 @@ protected:
     virtual void update_drag_position(int drect_x, int drect_y) = 0;
 
 private:
-
     static bool is_in_rect(int x, int y, const DrawRectangle & drect);
 
     bool has_position_contraints() const;

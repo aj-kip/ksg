@@ -315,6 +315,28 @@ void Text::swap(Text & lhs) {
     lhs.check_invarients();
 }
 
+Text::TextSize Text::measure_text(const UString & ustr) {
+    if (!m_font_ptr) {
+        throw std::runtime_error(
+            "Text::measure_text: Cannot measure text size using an instance "
+            "with no font assigned.");
+    }
+    return measure_text(*m_font_ptr, unsigned(m_character_size), ustr);
+}
+
+/* static */ Text::TextSize Text::measure_text
+    (const sf::Font & font, unsigned character_size, const UString & str)
+{
+    TextSize rv;
+    for (auto uchr : str) {
+        const auto & glyph = font.getGlyph(uchr, character_size, false);
+        rv.width += glyph.advance + glyph.bounds.width;
+        rv.height = std::max(rv.height, glyph.bounds.height);
+    }
+    rv.height = std::max(rv.height, font.getLineSpacing(character_size));
+    return rv;
+}
+
 /* private */ void Text::draw
     (sf::RenderTarget & target, sf::RenderStates states) const
 {
@@ -336,7 +358,7 @@ void Text::swap(Text & lhs) {
     const DrawCharacterArray & draw_characters = *m_draw_characters_uptr;
     for (std::size_t i = 0; true; ++i) {
         // loop condition
-        if (i == draw_characters.size() or int(i) == end_vis_char)
+        if (i == draw_characters.size() || int(i) == end_vis_char)
             break;
         if (m_string[i] == U'\n')
             continue;
@@ -353,7 +375,7 @@ void Text::swap(Text & lhs) {
 
     for (std::size_t i = 0; i != m_string.size(); ++i) {
         // bolding not supported (yet :3)
-        sf::Glyph glyph = m_font_ptr->getGlyph
+        const auto & glyph = m_font_ptr->getGlyph
             (sf::Uint32(m_string[i]), unsigned(m_character_size), false);
 
         (*m_draw_characters_uptr)[i] = DrawCharacter(glyph, m_color);
@@ -394,8 +416,8 @@ static float max_char_height
     assert(m_breaklist.back() == int(m_string.size()));
 
     VectorF write_pos = location();
-    const VectorF BOUNDRY = location() + VectorF(m_width_limit, m_height_limit);
-    const float LINE_HEIGHT = m_font_ptr->getLineSpacing(unsigned(m_character_size));
+    const VectorF boundry_c = location() + VectorF(m_width_limit, m_height_limit);
+    const float line_height_c = m_font_ptr->getLineSpacing(unsigned(m_character_size));
 
     // we will destroy the line breaks list, reverse it so back comes first
     std::reverse(m_breaklist.begin(), m_breaklist.end());
@@ -417,19 +439,19 @@ static float max_char_height
         {
             if (i == m_breaklist.back()) {
                 // start writing next line
-                write_pos = VectorF(location().x, write_pos.y + LINE_HEIGHT);
-                if (write_pos.y > BOUNDRY.y)
+                write_pos = VectorF(location().x, write_pos.y + line_height_c);
+                if (write_pos.y > boundry_c.y)
                     break; // out of char index loop
                 m_breaklist.pop_back();
                 dc.set_color(sf::Color(0, 0, 0, 0));
                 continue;
             }
         }
-        else if (   write_pos.x > BOUNDRY.x
-                 || dc.location().x + dc.width() >= BOUNDRY.x)
+        else if (   write_pos.x > boundry_c.x
+                 || dc.location().x + dc.width() >= boundry_c.x)
         {
             dc.set_color(sf::Color(0, 0, 0, 0));
-            write_pos = VectorF(location().x, write_pos.y + LINE_HEIGHT);
+            write_pos = VectorF(location().x, write_pos.y + line_height_c);
             continue;
         }
 
@@ -445,21 +467,20 @@ static float max_char_height
 }
 
 void Text::trim_char_quad_and_update_bounds(DrawCharacter & dc) {
-
-    const VectorF BOUNDRY = location() + VectorF(m_width_limit, m_height_limit);
+    const VectorF boundry_c = location() + VectorF(m_width_limit, m_height_limit);
     const float dc_right = dc.location().x + dc.width();
-    if (dc_right - m_bounds.left > BOUNDRY.x) {
+    if (dc_right - m_bounds.left > boundry_c.x) {
         m_bounds.width = m_width_limit;
-        dc.cut_on_right(BOUNDRY.x);
+        dc.cut_on_right(boundry_c.x);
     } else if (dc_right - m_bounds.left > m_bounds.width) {
         m_bounds.width = dc_right - m_bounds.left;
     }
 
     // trim bottom off
     const float dc_bottom = dc.location().y + dc.height();
-    if (dc_bottom - m_bounds.top > BOUNDRY.y) {
+    if (dc_bottom - m_bounds.top > boundry_c.y) {
         m_bounds.height = m_height_limit;
-        dc.cut_on_bottom(BOUNDRY.y);
+        dc.cut_on_bottom(boundry_c.y);
     } else if (dc_bottom - m_bounds.top > m_bounds.height) {
         m_bounds.height = dc_bottom - m_bounds.top;
     }
@@ -484,8 +505,8 @@ static void do_greedy_wrapping(WrapInfo & nfo);
 
     update_vertex_positions();
 
-    m_dbounds.set_position(m_bounds.left, m_bounds.top);
-    m_dbounds.set_size(m_bounds.width, m_bounds.height);
+    m_dbounds.set_position(m_bounds.left , m_bounds.top   );
+    m_dbounds.set_size    (m_bounds.width, m_bounds.height);
 }
 
 bool Text::is_ready_for_geometry_update() const {

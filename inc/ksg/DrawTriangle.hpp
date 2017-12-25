@@ -66,7 +66,6 @@ public:
     void set_color(sf::Color);
 
 private:
-
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
     FixedLengthArray<sf::Vertex, VERTEX_COUNT> m_verticies;

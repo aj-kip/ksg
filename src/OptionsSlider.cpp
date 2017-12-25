@@ -109,7 +109,7 @@ void OptionsSlider::set_style(const StyleMap & smap) {
         (Button::REG_FRONT_COLOR, bind(&DrawRectangle::set_color, &m_front, _1));
     sfinder.call_if_found<sf::Color>
         (Button::REG_BACK_COLOR, bind(&DrawRectangle::set_color, &m_back, _1));
-    set_size(width(), height());
+    // setting style should not invoke any kind of geometry update
 }
 
 void OptionsSlider::accept(Visitor & visitor)
@@ -119,10 +119,11 @@ void OptionsSlider::accept(const Visitor & visitor) const
     { visitor.visit(*this); }
 
 void OptionsSlider::set_size(float w, float h) {
+    if (w == 0.f || h == 0.f) return;
     m_size = VectorF(w, h);
     {
     float min_dim = std::min(w, h);
-    m_left_arrow.set_size (min_dim, min_dim);
+    m_left_arrow .set_size(min_dim, min_dim);
     m_right_arrow.set_size(min_dim, min_dim);
     }
 
@@ -179,12 +180,23 @@ void OptionsSlider::set_option_change_event(BlankFunctor && func) {
     target.draw(m_right_arrow);
 }
 
+/* private */ void OptionsSlider::issue_auto_resize() {
+    float width_ = 0.f, height_ = 0.f;
+    for (const auto & str : m_options) {
+        auto gv = m_text.measure_text(str);
+        width_  = std::max(width_ , gv.width );
+        height_ = std::max(height_, gv.height);
+    }
+    m_text.set_limiting_dimensions(Text::NO_SIZE_LIMIT);
+    set_size(width_ + 6.f*m_padding, height_ + 2.f*m_padding);
+}
+
 /* private */ void OptionsSlider::recenter_text() {
     // assume size has been decided, use front
-    float width_diff = m_front.width() - m_text.width();
+    float width_diff  = m_front.width () - m_text.width ();
     float height_diff = m_front.height() - m_text.height();
-    m_text.set_location(m_front.x() + std::max(0.f, width_diff/2.f),
-                        m_front.y() + std::max(0.f, height_diff/2.f));
+    m_text.set_location(m_front.x() + std::max(0.f, width_diff  / 2.f),
+                        m_front.y() + std::max(0.f, height_diff / 2.f));
 }
 
 } // end of ksg namespace

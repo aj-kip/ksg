@@ -46,7 +46,6 @@ class Visitor;
  */
 class Widget : public sf::Drawable {
 public:
-
     using VectorF = sf::Vector2f;
 
     Widget();

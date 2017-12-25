@@ -71,8 +71,9 @@ public:
     void set_option_change_event(BlankFunctor && func);
 
 private:
-
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
+
+    void issue_auto_resize() override;
 
     void recenter_text();
 

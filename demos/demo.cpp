@@ -1,9 +1,12 @@
 #include <ksg/Frame.hpp>
 #include <ksg/TextArea.hpp>
 #include <ksg/TextButton.hpp>
+#include <ksg/OptionsSlider.hpp>
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Font.hpp>
+
+using UString = ksg::Text::UString;
 
 class DemoText final : public ksg::Frame {
 public:
@@ -11,8 +14,9 @@ public:
     void setup_frame(const sf::Font &);
     bool requesting_to_close() const { return m_close_flag; }
 private:
-    ksg::TextArea   m_text_area  ;
-    ksg::TextButton m_text_button;
+    ksg::TextArea      m_text_area  ;
+    ksg::TextButton    m_text_button;
+    ksg::OptionsSlider m_slider;
     bool m_close_flag;
 };
 
@@ -49,11 +53,14 @@ void DemoText::setup_frame(const sf::Font & font) {
     add_line_seperator();
     add_horizontal_spacer();
     add_widget(&m_text_button);
+    add_widget(&m_slider);
     add_horizontal_spacer();
     
     // careful not to use/capture tempory objects here
     // this may result in a segmentation fault, and is undefined behavior
     m_text_button.set_press_event([this]() { m_close_flag = true; });
+    std::vector<UString> options_list = { U"Orange", U"Apple", U"Banana" };
+    m_slider.swap_options(options_list);
 
     set_title_visible(false);
     m_text_area.set_text(U"Hello World.\n"

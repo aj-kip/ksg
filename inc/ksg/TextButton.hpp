@@ -50,7 +50,6 @@ public:
     void issue_auto_resize() override;
 
 private:
-
     /** Sets the maximum size of the text button.
      *  @param w width in pixels
      *  @param h height in pixels

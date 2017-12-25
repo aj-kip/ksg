@@ -42,7 +42,6 @@ namespace ksg {
  */
 class Button : public Widget {
 public:
-
     using BlankFunctor = std::function<void()>;
 
     //! background color of button, when mouse hovers over the button
@@ -95,7 +94,6 @@ public:
     void set_style(const StyleMap &) override;
 
 protected:
-
     /** Creates a zero-sized, white colored button. Pending setting of styles.
      */
     Button();

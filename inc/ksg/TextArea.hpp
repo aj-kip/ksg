@@ -96,13 +96,11 @@ public:
     static const char * const TEXT_SIZE;
 
 protected:
-
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
     void issue_auto_resize() override;
 
 private:
-
     void recompute_geometry();
 
     sf::FloatRect m_bounds;

@@ -29,7 +29,6 @@ namespace ksg {
 
 class ProgressBar final : public Widget {
 public:
-
     static constexpr const char * const OUTER_COLOR =
             "progress-bar-outer-color";
     static constexpr const char * const INNER_FRONT_COLOR =
@@ -74,11 +73,9 @@ public:
         { return m_padding; }
 
 protected:
-
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
 private:
-
     float active_padding() const;
 
     void update_positions_using_outer();

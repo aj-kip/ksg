@@ -49,7 +49,6 @@ public:
     void accept(const Visitor &) const override;
 
 private:
-
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
     void on_size_changed(float old_width, float old_height) override;

@@ -60,8 +60,8 @@ void TextButton::accept(const Visitor & visitor) const
 void TextButton::issue_auto_resize() {
     update_text_geometry(std::numeric_limits<float>::infinity(),
                          std::numeric_limits<float>::infinity());
-    set_button_frame_size(m_text.width () + padding()*2.f,
-                          m_text.height() + padding()*2.f);
+    set_button_frame_size(m_text.width () + padding()*4.f,
+                          m_text.height() + padding()*4.f);
     update_string_position();
 }
 

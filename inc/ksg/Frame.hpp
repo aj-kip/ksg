@@ -212,7 +212,6 @@ public:
     };
 
 protected:
-
     Frame();
 
     /** Draws the frame and all it's constintuate widgets.
@@ -221,7 +220,6 @@ protected:
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
 private:
-
     using WidgetItr = std::vector<Widget *>::iterator;
 
     /** Sentinal Widget type used to force the parent frame to move a new line
