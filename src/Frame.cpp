@@ -19,6 +19,8 @@
 
 *****************************************************************************/
 
+#include <common/Util.hpp>
+
 #include <ksg/Frame.hpp>
 #include <ksg/Visitor.hpp>
 #include <ksg/TextArea.hpp>
@@ -51,10 +53,13 @@ namespace ksg {
 Frame::Frame():
     m_padding(2.f), m_draggable(false), m_title_visible(true),
     m_click_in_frame(default_click_func)
-{}
+{
+    check_invarients();
+}
 
 void Frame::set_location(float x, float y) {
     set_frame_location(x, y);
+    check_invarients();
 }
 
 void Frame::process_event(const sf::Event & event) {
@@ -83,6 +88,7 @@ void Frame::process_event(const sf::Event & event) {
         break;
     default: break;
     }
+    check_invarients();
 }
 
 void Frame::set_style(const StyleMap & smap) {
@@ -101,6 +107,7 @@ void Frame::set_style(const StyleMap & smap) {
 
     for (Widget * widget_ptr : m_widgets)
         widget_ptr->set_style(smap);
+    check_invarients();
 }
 
 float Frame::width() const {
@@ -113,10 +120,13 @@ float Frame::height() const {
 
 void Frame::set_size(float w, float h) {
     m_back.set_size(w, h);
+    check_invarients();
 }
 
-void Frame::accept(Visitor & visitor)
-    { visitor.visit(*this); }
+void Frame::accept(Visitor & visitor) {
+    visitor.visit(*this);
+    check_invarients();
+}
 
 void Frame::accept(const Visitor & visitor) const
     { visitor.visit(*this); }
@@ -127,6 +137,7 @@ void Frame::add_widget(Widget * comp_ptr) {
                                     "argument.");
     }
     m_widgets.push_back(comp_ptr);
+    check_invarients();
 }
 
 void Frame::add_horizontal_spacer() {
@@ -141,8 +152,8 @@ void Frame::add_horizontal_spacer() {
     // </quote>
 
     // update and revalidate all pointers to spacers as necessary
-    if (    m_horz_spacers.size() == m_horz_spacers.capacity()
-        and !m_horz_spacers.empty())
+    if (   m_horz_spacers.size() == m_horz_spacers.capacity()
+        && !m_horz_spacers.empty())
     {
         std::vector<HorizontalSpacer> new_spacer_cont;
         // reserve and copy
@@ -166,17 +177,20 @@ void Frame::add_horizontal_spacer() {
     // otherwise add a spacer as normal
     m_horz_spacers.push_back(HorizontalSpacer());
     m_widgets.push_back(&m_horz_spacers.back());
+    check_invarients();
 }
 
 void Frame::clear_all_widgets() {
     m_widgets.clear();
     m_horz_spacers.clear();
+    check_invarients();
 }
 
 void Frame::set_title(const UString & str) {
     m_title.set_string(str);
     if (m_title.string().empty())
         set_title_visible(false);
+    check_invarients();
 }
 
 void Frame::set_title_visible(bool v) {
@@ -184,6 +198,7 @@ void Frame::set_title_visible(bool v) {
     m_draggable = m_title_visible = v;
     if (old_title_visible != m_title_visible)
         set_size(width(), height());
+    check_invarients();
 }
 
 void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
@@ -206,9 +221,6 @@ void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
 }
 
 void Frame::update_geometry() {
-    for (Widget * widget_ptr : m_widgets)
-        widget_ptr->issue_auto_resize();
-
     // auto sizing
     issue_auto_resize();
 
@@ -257,10 +269,12 @@ void Frame::update_geometry() {
         if (frame_ptr)
             frame_ptr->update_geometry();
     }
+    check_invarients();
 }
 
 void Frame::reset_register_click_event() {
     m_click_in_frame = default_click_func;
+    check_invarients();
 }
 
 /* private */ VectorF Frame::compute_size_to_fit() const {
@@ -275,6 +289,7 @@ void Frame::reset_register_click_event() {
             continue;
         if (is_line_seperator(widget_ptr)) {
             total_width   = std::max(line_width, total_width);
+            assert(!util::is_nan(total_width));
             line_width    = 0.f;
             total_height += line_height + m_padding;
             line_height   = 0.f;
@@ -282,8 +297,11 @@ void Frame::reset_register_click_event() {
         }
         float width  = widget_ptr->width ();
         float height = widget_ptr->height();
-        Frame * widget_as_frame = dynamic_cast<Frame *>(widget_ptr);
-        if (widget_as_frame && width == 0.f && height == 0.f) {
+        Frame * widget_as_frame = nullptr;
+        // should I issue auto-resize here?
+        if (width == 0.f && height == 0.f
+            && (widget_as_frame = dynamic_cast<Frame *>(widget_ptr)))
+        {
             auto gv = widget_as_frame->compute_size_to_fit();
             width  = gv.x;
             height = gv.y;
@@ -295,14 +313,18 @@ void Frame::reset_register_click_event() {
     if (line_width != 0.f) {
         total_width   = std::max(total_width, line_width);
         total_height += line_height + m_padding;
+        assert(!util::is_nan(total_width));
     }
     if (m_title_visible) {
         total_height += title_height() + m_padding;
         total_width = std::max(total_width, m_title.width() + m_padding*2.f);
+        assert(!util::is_nan(total_width));
     }
     if (!m_widgets.empty()) {
-        total_width  += m_padding*2.f;
-        total_height += m_padding*2.f;
+        // padding for borders + padding on end
+        // during normal iteration we include only one
+        total_width  += m_padding*3.f;
+        total_height += m_padding*3.f;
     }
     return VectorF(total_width, total_height);
 }
@@ -325,6 +347,8 @@ void Frame::reset_register_click_event() {
 
 /* private */ void Frame::issue_auto_resize() {
     // ignore auto resize if the frame as a width/height already set
+    for (Widget * widget_ptr : m_widgets)
+        widget_ptr->issue_auto_resize();
     if (width() == 0.f || height() == 0.f) {
         auto size_ = compute_size_to_fit();
         set_size(size_.x, size_.y);
@@ -334,14 +358,20 @@ void Frame::reset_register_click_event() {
 /* private */ float Frame::title_height() const
     { return float(m_title.character_size()*2); }
 
-/* private */ void Frame::update_horizontal_spacers() {
-    const float HORZ_SPACE = m_widget_body.width();
+/* private */ void Frame::check_invarients() const {
+    assert(!util::is_nan(width ()) && width () >= 0.f);
+    assert(!util::is_nan(height()) && height() >= 0.f);
+}
 
+/* private */ void Frame::update_horizontal_spacers() {
+    const float horz_space_c = m_widget_body.width();
+    const float start_x_c    = m_padding;
+    assert(horz_space_c >= 0.f);
     // horizontal spacers:
     // will have to find out how much horizontal space is available per line
     // first. Next, if there are any horizontal spacers, each of them carries
     // an equal amount of the left over space.
-    float x = 0.f;
+    float x = start_x_c;
     auto line_begin = m_widgets.begin();
     for (auto itr = m_widgets.begin(); itr != m_widgets.end(); ++itr) {
         Widget * widget_ptr = *itr;
@@ -351,16 +381,14 @@ void Frame::reset_register_click_event() {
         float horz_step = widget_ptr->width() + m_padding;
 
         // horizontal overflow or end of widgets
-        if (   HORZ_SPACE - (x + horz_step) < 0.f
-            || is_line_seperator(widget_ptr))
-        {
+        if (x + horz_step > horz_space_c || is_line_seperator(widget_ptr)) {
             // at the end of the line, set the widths for the horizontal
             // spacers
             line_begin = set_horz_spacer_widths
-                (line_begin, itr, std::max(HORZ_SPACE - x, 0.f), m_padding);
+                (line_begin, itr, std::max(horz_space_c - x, 0.f), m_padding);
 
             // advance to new line
-            x = 0.f;
+            x = start_x_c;
         } // end of horizontal overflow handling
 
         // horizontal advance
@@ -370,7 +398,7 @@ void Frame::reset_register_click_event() {
     if (line_begin == m_widgets.end()) return;
 
     set_horz_spacer_widths
-        (line_begin, m_widgets.end(), std::max(HORZ_SPACE - x, 0.f), m_padding);
+        (line_begin, m_widgets.end(), std::max(horz_space_c - x, 0.f), m_padding);
 }
 
 /* private */ void Frame::update_drag_position(int drect_x, int drect_y) {

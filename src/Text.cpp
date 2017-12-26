@@ -73,7 +73,6 @@ namespace {
  */
 class WrapInfo {
 public:
-
     WrapInfo(const DrawCharacterContainer & draw_characters_,
              const UString & str_, float line_width_):
         m_draw_characters_ptr(&draw_characters_), m_str_ptr(&str_),
@@ -363,7 +362,6 @@ Text::TextSize Text::measure_text(const UString & ustr) {
         if (m_string[i] == U'\n')
             continue;
         target.draw(draw_characters[i], states);
-
     }
 }
 
@@ -488,8 +486,7 @@ void Text::trim_char_quad_and_update_bounds(DrawCharacter & dc) {
 
 static void do_greedy_wrapping(WrapInfo & nfo);
 
-/* private */ void Text::update_geometry()
-{
+/* private */ void Text::update_geometry() {
     // can our verticies have sizes, do we even have verticies?
     if (!is_ready_for_geometry_update())
         return;
@@ -537,14 +534,12 @@ static bool is_space(UChar chr)
     { return (chr == ' ' || chr == '\t' || chr == '\r'); }
 
 static void do_greedy_wrapping(WrapInfo & nfo) {
-
     LineBreakList line_breaks;
     bool in_word = false;
     int word_end = -1;
     float current_width_accum = 0.f;
 
     for (int i = 0; i != nfo.char_count(); ++i) {
-
         if (nfo.char_identity(i) == UChar('\n')) {
             // is hard line break
             line_breaks.push_back(i);

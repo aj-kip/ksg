@@ -22,7 +22,10 @@
 #include <ksg/ImageWidget.hpp>
 #include <ksg/Visitor.hpp>
 
+#include <common/Util.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+
+#include <cassert>
 
 namespace {
 
@@ -41,6 +44,8 @@ bool ImageWidget::load_from_file(const char * filename) noexcept {
     auto & texture = m_texture_storage.reset<sf::Texture>();
     if (texture.loadFromFile(filename)) {
         m_spt.setTexture(texture);
+        update_size_post_load();
+        check_invarients();
         return true;
     } else {
         return false;
@@ -52,22 +57,35 @@ void ImageWidget::load_from_image(const sf::Image & image) {
     if (!texture.loadFromImage(image))
         throw Error(CANNOT_UPLOAD_TEXTURE_MSG);
     m_spt.setTexture(texture);
+    update_size_post_load();
+    check_invarients();
 }
 
-void ImageWidget::load_from_texture
+void ImageWidget::set_texture
     (const sf::Texture & texture_, const sf::IntRect & trect_)
 {
     const auto & texture = m_texture_storage.reset<sf::Texture>(texture_);
-    m_spt.setTexture    (texture);
-    m_spt.setTextureRect(trect_ );
+    m_spt.setTexture(texture);
+    if (trect_ != sf::IntRect())
+        m_spt.setTextureRect(trect_ );
+    update_size_post_load();
+    check_invarients();
 }
 
 void ImageWidget::set_texture_shared_pointer
     (std::shared_ptr<const sf::Texture> shrd_ptr)
-{ m_texture_storage = TextureMultiType(shrd_ptr); }
+{
+    m_texture_storage = TextureMultiType(shrd_ptr);
+    m_spt.setTexture(*shrd_ptr);
+    update_size_post_load();
+    check_invarients();
+}
 
-void ImageWidget::assign_texture(const sf::Texture * tptr)
-    { m_texture_storage = TextureMultiType(tptr); }
+void ImageWidget::assign_texture(const sf::Texture * tptr) {
+    m_texture_storage = TextureMultiType(tptr);
+    update_size_post_load();
+    check_invarients();
+}
 
 void ImageWidget::reset_texture_rectangle(const sf::IntRect & trect_)
     { m_spt.setTextureRect(trect_); }
@@ -77,15 +95,14 @@ void ImageWidget::set_location(float x, float y)
 
 VectorF ImageWidget::location() const { return m_spt.getPosition(); }
 
-float ImageWidget::width() const
-    { return float(m_spt.getTextureRect().width  * m_spt.getScale().x); }
+float ImageWidget::width() const { return m_size.x; }
 
-float ImageWidget::height() const
-    { return float(m_spt.getTextureRect().height * m_spt.getScale().y); }
+float ImageWidget::height() const { return m_size.y; }
 
 void ImageWidget::set_size(float w, float h) {
-    const auto & rect = m_spt.getTextureRect();
-    m_spt.setScale(w / rect.width, h / rect.height);
+    m_size = sf::Vector2f(w, h);
+    update_size_post_load();
+    check_invarients();
 }
 
 void ImageWidget::accept(Visitor & visitor)
@@ -94,7 +111,23 @@ void ImageWidget::accept(Visitor & visitor)
 void ImageWidget::accept(const Visitor & visitor) const
     { visitor.visit(*this); }
 
-void ImageWidget::draw(sf::RenderTarget & target, sf::RenderStates) const
+/* private */ void ImageWidget::draw
+    (sf::RenderTarget & target, sf::RenderStates) const
     { target.draw(m_spt); }
+
+/* private */ void ImageWidget::check_invarients() const {
+    if (m_texture_storage.is_valid()) {
+        assert(m_spt.getTexture());
+    } else {
+        assert(!m_spt.getTexture());
+    }
+}
+
+/* private */ void ImageWidget::update_size_post_load() {
+    const auto & rect = m_spt.getTextureRect();
+    if (rect.width != 0.f && rect.height != 0.f) {
+        m_spt.setScale(m_size.x / rect.width, m_size.y / rect.height);
+    }
+}
 
 } // end of ksg namespace

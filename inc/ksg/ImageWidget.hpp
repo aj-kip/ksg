@@ -42,8 +42,8 @@ public:
 
     void load_from_image(const sf::Image & image);
 
-    void load_from_texture(const sf::Texture & texture_,
-                           const sf::IntRect & trect_ = sf::IntRect());
+    void set_texture(const sf::Texture & texture_,
+                     const sf::IntRect & trect_ = sf::IntRect());
 
     void set_texture_shared_pointer(std::shared_ptr<const sf::Texture>);
 
@@ -77,8 +77,13 @@ public:
 private:
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
+    void check_invarients() const;
+
+    void update_size_post_load();
+
     TextureMultiType m_texture_storage;
-    sf::Sprite m_spt;
+    sf::Sprite   m_spt;
+    sf::Vector2f m_size;
 };
 
 } // end of ksg namespace

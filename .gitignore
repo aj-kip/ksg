@@ -8,3 +8,7 @@
 !.travis.yml
 msvc/erfindung.VC.db
 html/*
+*libcommon-d.a
+*libksg-d.a
+*libcommon.a
+*libksg.a

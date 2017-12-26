@@ -181,13 +181,13 @@ void OptionsSlider::set_option_change_event(BlankFunctor && func) {
 }
 
 /* private */ void OptionsSlider::issue_auto_resize() {
+    if (width() != 0.f || height() != 0.f) return;
     float width_ = 0.f, height_ = 0.f;
     for (const auto & str : m_options) {
         auto gv = m_text.measure_text(str);
         width_  = std::max(width_ , gv.width );
         height_ = std::max(height_, gv.height);
     }
-    m_text.set_limiting_dimensions(Text::NO_SIZE_LIMIT);
     set_size(width_ + 6.f*m_padding, height_ + 2.f*m_padding);
 }
 

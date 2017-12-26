@@ -153,7 +153,7 @@ public:
 
     // <------------------ Frame specific functionality ---------------------->
 
-    void add_widget(Widget *) override final;
+    void add_widget(Widget *) final;
 
     void add_line_seperator()
         { add_widget(&m_the_line_seperator); }
@@ -282,7 +282,7 @@ private:
 
     void update_horizontal_spacers();
 
-    void update_drag_position(int drect_x, int drect_y) override final;
+    void update_drag_position(int drect_x, int drect_y) final;
 
     void update_head_and_back_geometry();
 
@@ -294,9 +294,11 @@ private:
 
     float get_widget_advance(const Widget * widget_ptr) const;
 
-    void issue_auto_resize() override final;
+    void issue_auto_resize() final;
 
     float title_height() const;
+
+    void check_invarients() const;
 
     std::vector<Widget *> m_widgets;
     float m_padding;

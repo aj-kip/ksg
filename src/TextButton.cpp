@@ -58,6 +58,7 @@ void TextButton::accept(const Visitor & visitor) const
     { visitor.visit(*this); }
 
 void TextButton::issue_auto_resize() {
+    if (width() != 0.f || height() != 0.f) return;
     update_text_geometry(std::numeric_limits<float>::infinity(),
                          std::numeric_limits<float>::infinity());
     set_button_frame_size(m_text.width () + padding()*4.f,

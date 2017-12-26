@@ -57,7 +57,7 @@ public:
 
     void set_location(float x, float y) override;
 
-    VectorF location() const override final
+    VectorF location() const final
         { return VectorF(m_outer.x(), m_outer.y()); }
 
     /** Allows the setting of the width and height of Button
@@ -70,11 +70,11 @@ public:
     void set_size(float w, float h);
 
     //! @return This returns width of the button in pixels.
-    float width() const override final
+    float width() const final
         { return m_outer.width(); }
 
     //! @return This returns height of the button in pixels.
-    float height() const override final
+    float height() const final
         { return m_outer.height(); }
 
     void process_event(const sf::Event & evnt) override;
