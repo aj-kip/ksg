@@ -80,8 +80,6 @@ public:
 
     static constexpr const int MAX_STRING_LEN = std::numeric_limits<int>::max();
 
-    enum { NO_SIZE_LIMIT };
-
     struct TextSize {
         TextSize(): width(0.f), height(0.f) {}
         float width, height;
@@ -104,9 +102,11 @@ public:
 
     void swap_string(UString & str);
 
-    void set_limiting_dimensions(float w, float h);
+    void set_limiting_width(float w);
 
-    void set_limiting_dimensions(decltype(NO_SIZE_LIMIT));
+    void set_limiting_height(float h);
+
+    void set_limiting_dimensions(float w, float h);
 
     void relieve_width_limit();
 

@@ -114,6 +114,7 @@ public:
     static constexpr const char * const TITLE_SIZE = "frame-title-size";
     static constexpr const char * const TITLE_COLOR = "frame-title-color";
     static constexpr const char * const WIDGET_BODY_COLOR = "frame-body";
+    static constexpr const char * const BORDER_SIZE = "frame-border-size";
 
     static constexpr const char * const GLOBAL_PADDING = "global-padding";
     static constexpr const char * const GLOBAL_FONT = "global-font";
@@ -176,8 +177,11 @@ public:
     void set_draggable(bool v)
         { m_draggable = v; }
 
-    void set_padding(float amt)
-        { m_padding = amt; }
+    void set_border_size(float pixels)
+        { m_outer_padding = pixels; }
+
+    void set_padding(float pixels)
+        { m_outer_padding = m_padding = pixels; }
 
     using Draggable::set_position_contraints;
 
@@ -246,7 +250,7 @@ private:
 
         void set_style(const StyleMap &) override {}
 
-    protected:
+    private:
         void draw(sf::RenderTarget &, sf::RenderStates) const override {}
     };
 
@@ -268,7 +272,7 @@ private:
 
         void set_style(const StyleMap &) override {}
 
-    protected:
+    private:
         void draw(sf::RenderTarget &, sf::RenderStates) const override {}
 
         VectorF m_location;
@@ -302,6 +306,8 @@ private:
 
     std::vector<Widget *> m_widgets;
     float m_padding;
+    // padding for frame's border
+    float m_outer_padding;
     bool m_draggable;
 
     DrawRectangle m_back;

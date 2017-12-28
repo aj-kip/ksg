@@ -51,7 +51,8 @@ Frame::ClickResponse default_click_func()
 namespace ksg {
 
 Frame::Frame():
-    m_padding(2.f), m_draggable(false), m_title_visible(true),
+    m_padding(2.f), m_outer_padding(2.f),
+    m_draggable(false), m_title_visible(true),
     m_click_in_frame(default_click_func)
 {
     check_invarients();
@@ -104,7 +105,12 @@ void Frame::set_style(const StyleMap & smap) {
     sfinder.call_if_found<sf::Color>
         (WIDGET_BODY_COLOR, bind(&DrawRectangle::set_color, &m_widget_body, _1));
     sfinder.set_if_found(GLOBAL_PADDING, &m_padding);
-
+    auto itr = smap.find(BORDER_SIZE);
+    if (itr == smap.end()) {
+        sfinder.set_if_found(GLOBAL_PADDING, &m_outer_padding);
+    } else if (itr->second.is_type<float>()) {
+        m_outer_padding = itr->second.as<float>();
+    }
     for (Widget * widget_ptr : m_widgets)
         widget_ptr->set_style(smap);
     check_invarients();
@@ -214,6 +220,16 @@ void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
         if (widget_ptr->is_visible())
             target.draw(*widget_ptr);
     }
+#   if 1
+    DrawRectangle dr;
+    dr.set_color(sf::Color::Red);
+    for (Widget * widget_ptr : m_widgets) {
+        if (!is_horizontal_spacer(widget_ptr)) continue;
+        dr.set_position(widget_ptr->location().x, widget_ptr->location().y);
+        dr.set_size    (widget_ptr->width()     , 20.f);
+        target.draw(dr);
+    }
+#   endif
 }
 
 /* private */ void Frame::set_frame_location(float x, float y) {
@@ -235,12 +251,14 @@ void Frame::update_geometry() {
     float y = m_widget_body.y() + m_padding;
 
     float line_height = 0.f;
-    const float right_limit = location().x + width();
+    float pad_fix     = 0.f;
     auto advance_locals_to_next_line = [&]() {
         y += line_height + m_padding;
         x = start_x;
         line_height = 0.f;
+        pad_fix = 0.f;
     };
+    const float right_limit_c = location().x + width();
     for (Widget * widget_ptr : m_widgets) {
         assert(widget_ptr);
         // horizontal overflow
@@ -248,10 +266,12 @@ void Frame::update_geometry() {
             advance_locals_to_next_line();
             continue;
         }
-        if (x + get_widget_advance(widget_ptr) > right_limit) {
+        if (x + get_widget_advance(widget_ptr) > right_limit_c) {
             advance_locals_to_next_line();
             // this widget_ptr is placed as the first element of the line
         }
+        if (is_horizontal_spacer(widget_ptr))
+            x += pad_fix;
 
         widget_ptr->set_location(x, y);
 
@@ -259,6 +279,7 @@ void Frame::update_geometry() {
 
         // horizontal advance
         x += get_widget_advance(widget_ptr);
+        pad_fix = -m_padding;
     }
     // note: there is no consideration given to "vertical overflow"
     // not considering if additional widgets overflow the frame's
@@ -282,17 +303,21 @@ void Frame::reset_register_click_event() {
     float line_width   = 0.f;
     float total_height = 0.f;
     float line_height  = 0.f;
+    float pad_fix      = 0.f;
 
     for (Widget * widget_ptr : m_widgets) {
         assert(widget_ptr);
-        if (is_horizontal_spacer(widget_ptr))
+        if (is_horizontal_spacer(widget_ptr)) {
+            pad_fix = -m_padding;
             continue;
+        }
         if (is_line_seperator(widget_ptr)) {
             total_width   = std::max(line_width, total_width);
             assert(!util::is_nan(total_width));
             line_width    = 0.f;
             total_height += line_height + m_padding;
             line_height   = 0.f;
+            pad_fix       = 0.f;
             continue;
         }
         float width  = widget_ptr->width ();
@@ -306,8 +331,9 @@ void Frame::reset_register_click_event() {
             width  = gv.x;
             height = gv.y;
         }
-        line_width  += get_widget_advance(widget_ptr);
+        line_width  += get_widget_advance(widget_ptr) + pad_fix;
         line_height  = std::max(line_height, height);
+        pad_fix = 0.f;
     }
 
     if (line_width != 0.f) {
@@ -342,6 +368,7 @@ void Frame::reset_register_click_event() {
 /* private */ float Frame::get_widget_advance(const Widget * widget_ptr) const {
     bool is_special_widget = is_line_seperator(widget_ptr) ||
                              is_horizontal_spacer(widget_ptr);
+    //bool next_is_special_widget
     return widget_ptr->width() + (is_special_widget ? 0.f : m_padding);
 }
 
@@ -365,20 +392,27 @@ void Frame::reset_register_click_event() {
 
 /* private */ void Frame::update_horizontal_spacers() {
     const float horz_space_c = m_widget_body.width();
-    const float start_x_c    = m_padding;
+    const float start_x_c    = 0.f;
     assert(horz_space_c >= 0.f);
     // horizontal spacers:
     // will have to find out how much horizontal space is available per line
     // first. Next, if there are any horizontal spacers, each of them carries
     // an equal amount of the left over space.
     float x = start_x_c;
+    float pad_fix = 0.f;
     auto line_begin = m_widgets.begin();
     for (auto itr = m_widgets.begin(); itr != m_widgets.end(); ++itr) {
         Widget * widget_ptr = *itr;
         assert(widget_ptr);
-        if (is_horizontal_spacer(widget_ptr)) continue;
-
-        float horz_step = widget_ptr->width() + m_padding;
+        // if the widget follow another non spacer is a spacer than no
+        // padding is added
+        if (is_horizontal_spacer(widget_ptr)) {
+            x += pad_fix;
+            pad_fix = 0.f;
+            continue;
+        }
+        pad_fix = -m_padding;
+        float horz_step = get_widget_advance(widget_ptr);
 
         // horizontal overflow or end of widgets
         if (x + horz_step > horz_space_c || is_line_seperator(widget_ptr)) {
@@ -389,6 +423,7 @@ void Frame::reset_register_click_event() {
 
             // advance to new line
             x = start_x_c;
+            pad_fix = 0.f;
         } // end of horizontal overflow handling
 
         // horizontal advance
@@ -413,18 +448,18 @@ void Frame::reset_register_click_event() {
     auto h = m_back.height();
     const float title_bar_height_c =
         m_title_visible ? title_height() : 0.f;
-    const float title_bar_pad_c = m_title_visible ? m_padding : 0.f;
+    const float title_bar_pad_c = m_title_visible ? m_outer_padding : 0.f;
     if (m_title_visible) {
-        m_title_bar.set_position(loc.x + m_padding, loc.y + m_padding);
-        m_title_bar.set_size(w - m_padding*2.f, title_bar_height_c);
+        m_title_bar.set_position(loc.x + m_outer_padding, loc.y + m_outer_padding);
+        m_title_bar.set_size(w - m_outer_padding*2.f, title_bar_height_c);
         update_title_geometry(loc, m_title_bar, &m_title);
     }
     m_widget_body.set_position
-        (loc.x + m_padding,
-         loc.y + title_bar_height_c + m_padding + title_bar_pad_c);
+        (loc.x + m_outer_padding,
+         loc.y + title_bar_height_c + m_outer_padding + title_bar_pad_c);
     m_widget_body.set_size
-        (w - m_padding*2.f,
-         h - (title_bar_height_c + m_padding*2.f + title_bar_pad_c));
+        (w - m_outer_padding*2.f,
+         h - (title_bar_height_c + m_outer_padding*2.f + title_bar_pad_c));
 }
 
 /* private */ Frame::WidgetItr Frame::set_horz_spacer_widths

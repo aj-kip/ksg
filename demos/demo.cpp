@@ -7,8 +7,6 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Font.hpp>
 
-#include <iostream>
-
 using UString = ksg::Text::UString;
 
 namespace {
@@ -44,21 +42,29 @@ int main() {
     font.loadFromFile("font.ttf");
     dialog.setup_frame(font);
 
-    sf::RenderWindow window(sf::VideoMode(unsigned(dialog.width()),
-                                          unsigned(dialog.height())), "Window Title");
-    window.setFramerateLimit(30);
+    sf::RenderWindow window(
+        sf::VideoMode(unsigned(dialog.width()), unsigned(dialog.height())), 
+        "Window Title");
+    window.setFramerateLimit(20);
+    bool has_events = true;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
+            has_events = true;
             dialog.process_event(event);
             if (event.type == sf::Event::Closed)
                 window.close();
         }
         if (dialog.requesting_to_close())
             window.close();
-        window.clear();
-        window.draw(dialog);
-        window.display();
+        if (has_events) {
+            window.clear();
+            window.draw(dialog);
+            window.display();
+            has_events = false;
+        } else {
+            sf::sleep(sf::microseconds(16667));
+        }
     }
 }
 
@@ -71,7 +77,7 @@ void FruitFrame::setup_frame() {
     add_widget(&m_slider);
     add_horizontal_spacer();
 
-    const auto image_files_c = 
+    const auto image_files_c =
         { "images/orange.jpg", "images/apple.jpg", "images/bananas.jpg" };
     std::vector<UString> options_list = { U"Orange", U"Apple", U"Bananas" };
 
@@ -94,10 +100,12 @@ void FruitFrame::setup_frame() {
 void DemoText::setup_frame(const sf::Font & font) {
     auto styles = ksg::construct_system_styles();
     styles[Frame::GLOBAL_FONT] = ksg::StylesField(&font);
+    styles[Frame::BORDER_SIZE] = ksg::StylesField(0.f);
 
     m_embeded_frame.setup_frame();
 
     add_widget(&m_text_area);
+    add_horizontal_spacer();
     add_widget(&m_embeded_frame);
     add_line_seperator();
     add_horizontal_spacer();
@@ -110,13 +118,16 @@ void DemoText::setup_frame(const sf::Font & font) {
 
     set_title_visible(false);
     m_text_area.set_text(U"Hello World.\n"
-        "Images of fruit were graciously provided by\n"
-        "\"freefoodphotos.com\" each of which are\n"
-        "released under the creative commons\n"
-        "attribution (3.0) license.");
+        "Images of fruit were graciously "
+        "provided by \"freefoodphotos.com\" "
+        "each of which are released under "
+        "the creative commons attribution "
+        "(3.0) license.");
+    m_text_area.set_width(200.f);
     m_text_button.set_string(U"Close Application");
 
     set_style(styles);
+    set_padding(5.f);
     update_geometry();
 }
 

@@ -31,9 +31,6 @@ using VectorF = ksg::Widget::VectorF;
 
 namespace ksg {
 
-/* static */ const char * const TextArea::TEXT_COLOR = "text-area-text-color";
-/* static */ const char * const TextArea::TEXT_SIZE  = "text-area-text-size" ;
-
 void set_if_present(Text & text, const StyleMap & smap, const char * font_field,
                     const char * char_size_field, const char * text_color)
 {
@@ -50,25 +47,19 @@ void set_if_present(Text & text, const StyleMap & smap, const char * font_field,
 
 TextArea::TextArea() {}
 
-void TextArea::process_event(const sf::Event &){}
+void TextArea::process_event(const sf::Event &) {}
 
 void TextArea::set_location(float x, float y) {
-    m_bounds.left = x;
-    m_bounds.top  = y;
     m_draw_text.set_location(x, y);
     recompute_geometry();
 }
 
 VectorF TextArea::location() const
-    { return VectorF(m_bounds.left, m_bounds.top); }
+    { return m_draw_text.location(); }
 
-float TextArea::width() const {
-    return (m_bounds.width == 0.f) ? m_draw_text.width() : m_bounds.width;
-}
+float TextArea::width () const { return m_draw_text.width (); }
 
-float TextArea::height() const {
-    return (m_bounds.height == 0.f) ? m_draw_text.height() : m_bounds.height;
-}
+float TextArea::height() const { return m_draw_text.height(); }
 
 void TextArea::set_style(const StyleMap & smap) {
     set_if_present(m_draw_text, smap,
@@ -83,7 +74,7 @@ void TextArea::accept(const Visitor & visitor) const
     { visitor.visit(*this); }
 
 void TextArea::issue_auto_resize() {
-    m_draw_text.relieve_size_limit();
+    //m_draw_text.relieve_size_limit();
     recompute_geometry();
 }
 
@@ -98,15 +89,18 @@ void TextArea::set_character_size(int size_) {
     recompute_geometry();
 }
 
-void TextArea::set_width(float w) {
-    m_bounds.width = w;
-    m_draw_text.set_limiting_dimensions(m_bounds.width, m_bounds.height);
+void TextArea::set_width (float w) {
+    m_draw_text.set_limiting_width(w);
     recompute_geometry();
 }
 
 void TextArea::set_height(float h) {
-    m_bounds.height = h;
-    m_draw_text.set_limiting_dimensions(m_bounds.width, m_bounds.height);
+    m_draw_text.set_limiting_height(h);
+    recompute_geometry();
+}
+
+void TextArea::set_size(float w, float h) {
+    m_draw_text.set_limiting_dimensions(w, h);
     recompute_geometry();
 }
 

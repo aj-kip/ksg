@@ -36,9 +36,8 @@ class Text;
 /** @brief IMPLEMENTATION DETAIL <not for client use>
  *
  */
-class DrawCharacter : public sf::Drawable {
+class DrawCharacter final : public sf::Drawable {
 public:
-
     using VectorF = sf::Vector2f;
 
     DrawCharacter();
@@ -72,11 +71,9 @@ public:
     void move(float x, float y);
 
 protected:
-
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
 private:
-
     FixedLengthArray<sf::Vertex, 4> m_verticies;
     float m_advance;
 };

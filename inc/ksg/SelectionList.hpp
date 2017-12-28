@@ -1,6 +1,6 @@
 /****************************************************************************
 
-    File: ArrowButton.hpp
+    File: ProgressBar.hpp
     Author: Andrew Janke
     License: GPLv3
 
@@ -18,47 +18,42 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *****************************************************************************/
-
+#if 0
 #pragma once
 
-#include <ksg/Button.hpp>
-#include <ksg/DrawTriangle.hpp>
-
-// Kip's SFML GUI Library -> ksg
+#include <ksg/Widget.hpp>
 
 namespace ksg {
 
-/** An Arrow Button is a clickable button with an arrow facing in one of four
- *  possible directions.
+/**
+ * @brief The SelectionList class
+ *  A vertically arranged list of scrollable texts.
+ *  Overflow:
+ *  In the event that the lists of texts cannot fit the assigned size, this
+ *  widget will go into vertical overflow mode. In this mode the text will
+ *  scroll to position n% of the entire list where n%
+ *
+ *  Features:
  */
-class ArrowButton final : public Button {
+template <typename T>
+class SelectionList final : public Widget {
 public:
-    enum class Direction {
-        UP, DOWN, RIGHT, LEFT
-    };
+    enum { VERTICAL, HORIZONTAL };
 
-    ArrowButton();
+    void process_event(const sf::Event &) override;
 
-    void set_direction(Direction dir_);
+    void set_location(float x, float y) override;
 
-    void set_arrow_color(sf::Color color_)
-        { m_draw_tri.set_color(color_); }
+    VectorF location() const override;
 
-    void accept(Visitor &) override;
+    float width() const override;
 
-    void accept(const Visitor &) const override;
+    float height() const override;
 
-private:
-    void draw(sf::RenderTarget & target, sf::RenderStates) const override;
+    void set_style(const StyleMap &) override;
 
-    void on_size_changed(float old_width, float old_height) override;
-
-    void on_location_changed(float old_x, float old_y) override;
-
-    void update_points();
-
-    DrawTriangle m_draw_tri;
-    Direction m_dir;
+    void set_orientation(decltype(VERTICAL));
 };
 
 } // end of ksg namespace
+#endif

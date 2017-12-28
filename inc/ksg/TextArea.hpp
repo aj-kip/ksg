@@ -1,10 +1,10 @@
 /****************************************************************************
 
-	File: TextArea.hpp
-	Author: Andrew Janke
-	License: GPLv3
+    File: TextArea.hpp
+    Author: Andrew Janke
+    License: GPLv3
 
-	This program is free software: you can redistribute it and/or modify
+    This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -26,8 +26,6 @@
 
 namespace ksg {
 
-// set width use suggestion or command?
-
 void set_if_present(Text &, const StyleMap &, const char * font_field,
                     const char * char_size_field, const char * text_color);
 
@@ -37,6 +35,9 @@ void set_if_present(Text &, const StyleMap &, const char * font_field,
 class TextArea final : public Widget {
 public:
     using UString = Text::UString;
+
+    static constexpr const char * const TEXT_COLOR = "text-area-text-color";
+    static constexpr const char * const TEXT_SIZE  = "text-area-text-size" ;
 
     TextArea();
 
@@ -80,6 +81,8 @@ public:
 
     void set_height(float h);
 
+    void set_size(float w, float h);
+
     void assign_font(const sf::Font & font)
         { return m_draw_text.assign_font(&font); }
 
@@ -92,9 +95,6 @@ public:
     int character_size() const
         { return m_draw_text.character_size(); }
 
-    static const char * const TEXT_COLOR;
-    static const char * const TEXT_SIZE;
-
 protected:
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
@@ -103,7 +103,6 @@ protected:
 private:
     void recompute_geometry();
 
-    sf::FloatRect m_bounds;
     Text m_draw_text;
 };
 

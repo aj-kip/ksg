@@ -187,6 +187,12 @@ void Text::swap_string(UString & str) {
     check_invarients();
 }
 
+void Text::set_limiting_width(float w)
+    { set_limiting_dimensions(w, m_height_limit); }
+
+void Text::set_limiting_height(float h)
+    { set_limiting_dimensions(m_width_limit, h); }
+
 void Text::set_limiting_dimensions(float w, float h) {
     static constexpr const char * const INVALID_VALUES_MSG =
         "Text::set_limiting_dimensions: Width and height must be positive "
@@ -207,12 +213,6 @@ void Text::set_limiting_dimensions(float w, float h) {
     check_invarients();
 }
 
-void Text::set_limiting_dimensions(decltype(NO_SIZE_LIMIT)) {
-    set_limiting_dimensions
-        (std::numeric_limits<float>::infinity(),
-         std::numeric_limits<float>::infinity());
-}
-
 void Text::relieve_width_limit() {
     if (relief_should_update(&m_width_limit))
         update_geometry();
@@ -224,7 +224,7 @@ void Text::relieve_height_limit() {
 }
 
 void Text::relieve_size_limit() {
-    if (relief_should_update(&m_height_limit) or
+    if (relief_should_update(&m_height_limit) ||
         relief_should_update(&m_width_limit )   )
     {
         update_geometry();
@@ -579,7 +579,7 @@ static float max_char_height
     float max_height = 0.f;
     for (auto itr = beg; itr != end; ++itr) {
         // get glyph
-        sf::Glyph glyph = font.getGlyph
+        const auto & glyph = font.getGlyph
             (sf::Uint32(*itr), unsigned(char_size), false);
         if (glyph.bounds.height > max_height)
             max_height = glyph.bounds.height;

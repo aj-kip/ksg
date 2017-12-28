@@ -69,7 +69,7 @@ public:
 protected:
     Visitor(); // defined in Widgets.cpp
     // no one is going to call this
-    void visit() override final {}
+    void visit() final {}
 };
 
 // ----------------------------------------------------------------------------

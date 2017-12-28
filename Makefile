@@ -18,6 +18,9 @@ $(OBJECTS_DIR)/src:
 .PHONY: clean
 clean:
 	rm -rf $(OBJECTS_DIR)
+
+DEMO_OPTIONS = -g -L/usr/lib/ -L./demos -lsfml-system -lsfml-graphics -lsfml-window -lcommon-d -lksg-d
 .PHONY: demos
 demos:
-	$(CXX) $(CXXFLAGS) -g -L/usr/lib/ -L./demos demos/demo.cpp -lsfml-system -lsfml-graphics -lsfml-window -lcommon-d -lksg-d -o demos/.demo
+	$(CXX) $(CXXFLAGS) demos/demo.cpp $(DEMO_OPTIONS) -o demos/.demo
+	$(CXX) $(CXXFLAGS) demos/spacer_tests.cpp $(DEMO_OPTIONS) -o demos/.spacer_tests

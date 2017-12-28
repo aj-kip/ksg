@@ -54,8 +54,8 @@ HEADERS += \
     ../inc/ksg/Frame.hpp         \
     ../inc/ksg/ImageWidget.hpp   \
     ../inc/ksg/OptionsSlider.hpp \
+    ../inc/ksg/SelectionList.hpp \
     ../inc/ksg/ProgressBar.hpp   \
-    ../inc/ksg/StorageUnion.hpp  \
     ../inc/ksg/StyleMap.hpp      \
     ../inc/ksg/TextArea.hpp      \
     ../inc/ksg/TextButton.hpp    \
