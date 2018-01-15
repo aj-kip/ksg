@@ -46,7 +46,7 @@
 #include <ksg/Text.hpp>
 #include <common/Util.hpp>
 
-#include "DrawCharacter.hpp"
+#include <ksg/DrawCharacter.hpp>
 
 #include <SFML/Graphics/RenderTarget.hpp>
 

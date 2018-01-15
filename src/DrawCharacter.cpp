@@ -19,7 +19,7 @@
 
 *****************************************************************************/
 
-#include "DrawCharacter.hpp"
+#include <ksg/DrawCharacter.hpp>
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
@@ -39,11 +39,9 @@ T mag(T t) { return (t < T(0)) ? -t : t; }
 
 } // end of <anonymous> namespace
 
-DrawCharacter::DrawCharacter(): m_advance(0.f) {}
+DrawCharacterBase::DrawCharacterBase() {}
 
-DrawCharacter::DrawCharacter(const sf::Glyph & glyph, sf::Color clr):
-    m_advance(0.f)
-{
+DrawCharacterBase::DrawCharacterBase(const sf::Glyph & glyph, sf::Color clr) {
     using Vector2f = sf::Vector2f;
 
     float left   = glyph.bounds.left;
@@ -62,30 +60,24 @@ DrawCharacter::DrawCharacter(const sf::Glyph & glyph, sf::Color clr):
     m_verticies[1] = sf::Vertex(Vector2f(right, top   ), clr, Vector2f(trR, trT));
     m_verticies[2] = sf::Vertex(Vector2f(right, bottom), clr, Vector2f(trR, trB));
     m_verticies[3] = sf::Vertex(Vector2f(left , bottom), clr, Vector2f(trL, trB));
-
-    m_advance = glyph.advance;
 }
 
-void DrawCharacter::set_color(sf::Color clr) {
+void DrawCharacterBase::set_color(sf::Color clr) {
     for (sf::Vertex & v : m_verticies)
         v.color = clr;
 }
 
-float DrawCharacter::width() const {
+float DrawCharacterBase::width() const {
     return m_verticies[TOP_RIGHT_VERT_OFFSET].position.x -
            m_verticies[TOP_LEFT_VERT_OFFSET ].position.x;
 }
 
-float DrawCharacter::height() const {
+float DrawCharacterBase::height() const {
     return m_verticies[BOTTOM_LEFT_VERT_OFFSET].position.y -
            m_verticies[TOP_RIGHT_VERT_OFFSET  ].position.y;
 }
 
-float DrawCharacter::advance() const {
-    return m_advance;
-}
-
-void DrawCharacter::cut_on_right(float cut_line) {
+void DrawCharacterBase::cut_on_right(float cut_line) {
     sf::Vertex & tr = m_verticies[TOP_RIGHT_VERT_OFFSET];
     sf::Vertex & br = m_verticies[BOTTOM_RIGHT_VERT_OFFSET];
 
@@ -106,7 +98,7 @@ void DrawCharacter::cut_on_right(float cut_line) {
     tr.texCoords.x = br.texCoords.x = any_left.texCoords.x + tx_width*cut_ratio;
 }
 
-void DrawCharacter::cut_on_bottom(float cut_line) {
+void DrawCharacterBase::cut_on_bottom(float cut_line) {
     sf::Vertex & bl = m_verticies[BOTTOM_LEFT_VERT_OFFSET];
     sf::Vertex & br = m_verticies[BOTTOM_RIGHT_VERT_OFFSET];
     const sf::Vertex & any_top = m_verticies[TOP_LEFT_VERT_OFFSET];
@@ -125,7 +117,7 @@ void DrawCharacter::cut_on_bottom(float cut_line) {
     br.texCoords.y = bl.texCoords.y = any_top.texCoords.y + tx_height*cut_ratio;
 }
 
-void DrawCharacter::set_location(float x, float y) {
+void DrawCharacterBase::set_location(float x, float y) {
     float w = width(), h = height();
     for (sf::Vertex & v : m_verticies)
         v.position = sf::Vector2f(x, y);
@@ -135,23 +127,45 @@ void DrawCharacter::set_location(float x, float y) {
     m_verticies[BOTTOM_RIGHT_VERT_OFFSET].position.x += w;
 }
 
-void DrawCharacter::move(float x, float y) {
+void DrawCharacterBase::move(float x, float y) {
     for (sf::Vertex & v : m_verticies)
         v.position += sf::Vector2f(x, y);
 }
 
-VectorF DrawCharacter::location() const {
+VectorF DrawCharacterBase::location() const {
     return m_verticies[TOP_LEFT_VERT_OFFSET].position;
 }
 
-/* protected override */ void DrawCharacter::draw
+/* private final */ void DrawCharacterBase::draw
     (sf::RenderTarget & target, sf::RenderStates states) const
 {
     const sf::Vertex & tl = m_verticies[TOP_LEFT_VERT_OFFSET];
     const sf::Vertex & br = m_verticies[BOTTOM_RIGHT_VERT_OFFSET];
     if (   mag(tl.position.x - br.position.x) < 0.5f
-        or mag(tl.position.y - br.position.y) < 0.5f)
+        || mag(tl.position.y - br.position.y) < 0.5f)
         return;
     target.draw(&m_verticies[0], m_verticies.size(), sf::Quads, states);
 }
+
+// ------------------------------ DrawCharacter -------------------------------
+
+DrawCharacter::DrawCharacter() {}
+
+DrawCharacter::DrawCharacter(const sf::Glyph & glyph, sf::Color clr):
+    DrawCharacterBase(glyph, clr),
+    m_advance(glyph.advance)
+{}
+
+// ---------------------- without_advance::DrawCharacter ----------------------
+
+namespace without_advance {
+
+DrawCharacter::DrawCharacter() {}
+
+DrawCharacter::DrawCharacter(const sf::Glyph & glyph, sf::Color clr):
+    DrawCharacterBase(glyph, clr)
+{}
+
+}  // end of without_advance namespace
+
 } // end of ksg namespace

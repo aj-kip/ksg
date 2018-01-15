@@ -45,8 +45,9 @@ SOURCES += \
 
 HEADERS += \
     \ # private headers
-    ../src/ksg/DrawCharacter.hpp \
+    # <none>
     \ # public headers
+    ../inc/ksg/DrawCharacter.hpp \
     ../inc/ksg/ArrowButton.hpp   \
     ../inc/ksg/Button.hpp        \
     ../inc/ksg/Draggable.hpp     \
