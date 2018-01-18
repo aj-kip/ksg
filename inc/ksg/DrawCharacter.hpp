@@ -49,6 +49,8 @@ public:
 
     void set_color(sf::Color clr);
 
+    sf::Color color() const;
+
     float width() const;
 
     float height() const;

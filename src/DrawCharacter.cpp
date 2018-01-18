@@ -67,6 +67,9 @@ void DrawCharacterBase::set_color(sf::Color clr) {
         v.color = clr;
 }
 
+sf::Color DrawCharacterBase::color() const
+    { return m_verticies.front().color; }
+
 float DrawCharacterBase::width() const {
     return m_verticies[TOP_RIGHT_VERT_OFFSET].position.x -
            m_verticies[TOP_LEFT_VERT_OFFSET ].position.x;
