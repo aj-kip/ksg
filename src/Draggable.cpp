@@ -21,6 +21,8 @@
 
 #include <ksg/Draggable.hpp>
 
+#include <cmath>
+
 namespace {
 
 using InvalidArg = std::invalid_argument;

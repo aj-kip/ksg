@@ -203,7 +203,7 @@ void Text::set_limiting_dimensions(float w, float h) {
                !is_sentinel(x, -std::numeric_limits<float>::infinity());
     };
 
-    if (!is_valid(w) || !is_valid(w))
+    if (!is_valid(w) || !is_valid(h))
         throw std::invalid_argument(INVALID_VALUES_MSG);
 
     m_width_limit  = w;
