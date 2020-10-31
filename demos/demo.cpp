@@ -1,3 +1,5 @@
+// a possible way to compile this application:
+// g++ -std=c++17 demo.cpp -lcommon-d -lksg -lsfml-graphics -lsfml-window -lsfml-system -lz -L/media/ramdisk/ksg/demos -I../inc -I../lib/cul/inc -o demo
 #include <ksg/Frame.hpp>
 #include <ksg/TextArea.hpp>
 #include <ksg/TextButton.hpp>
