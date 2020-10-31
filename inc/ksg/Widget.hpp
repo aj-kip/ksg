@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Widget.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -22,20 +22,38 @@
 #pragma once
 
 #include <SFML/Graphics/Drawable.hpp>
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Window/Event.hpp>
-
-#include <map>
-#include <string>
-#include <memory>
 
 #include <ksg/StyleMap.hpp>
 
-namespace sf { class Font; }
+#include <vector>
+
+namespace sf {
+    class Font;
+    class Event;
+}
 
 namespace ksg {
 
-class Visitor;
+class FocusWidget;
+class Widget;
+
+/** @brief Child widget iterator enables a way to iterate all the child widgets
+ *         for some given parent widget.
+ *
+ *  This class uses double dispatch between Widget's iterate_children_ and
+ *  iterate_const_children_ virtual functions, and this classes on_child_ and
+ *  on_const_child_ virtual functions.
+ */
+class ChildWidgetIterator {
+public:
+    virtual ~ChildWidgetIterator();
+    void on_child(Widget & widget) { on_child_(widget); }
+    void on_child(const Widget & widget) { on_const_child_(widget); }
+protected:
+    virtual void on_child_(Widget &) {}
+    virtual void on_const_child_(const Widget &) {}
+    ChildWidgetIterator() {}
+};
 
 /** A frame needs four things from a widget, in order to position the widget
  *  and setup the frame.
@@ -72,30 +90,64 @@ public:
      */
     virtual void issue_auto_resize();
 
-    /** @brief Adds another widget pointer
-     *  Intended for pointers to aggregate class members.
-     *  @warning Frame does not own the widget pointers, it's the callers
-     *  responsiblity to delete their widgets. If you to dynamically create
-     *  your widgets on the fly, it is recommended to use smart pointers
-     *  (std::unique_ptr & std::shared_ptr).
-     *  @note Other widgets may of course override this function themselves,
-     *        add have member widgets of thier own.
-     *  @note Perhaps as a future feature, removing a widget pointer will be
-     *        added to this interface. For now "clear_widgets" and re-adding
-     *        them to the Frame is necessary.
-     */
-    virtual void add_widget(Widget *);
+    template <typename Func>
+    void iterate_children_f(Func &&);
 
-    virtual void accept(Visitor &);
+    template <typename Func>
+    void iterate_const_children_f(Func &&) const;
 
-    virtual void accept(const Visitor &) const;
+    void iterate_children(ChildWidgetIterator &&);
+    void iterate_children(ChildWidgetIterator &&) const;
 
+    void iterate_children(ChildWidgetIterator &);
+    void iterate_children(ChildWidgetIterator &) const;
     void set_visible(bool v) { m_visible = v; }
 
     bool is_visible() const { return m_visible; }
-
+protected:
+    virtual void iterate_children_(ChildWidgetIterator &);
+    virtual void iterate_const_children_(ChildWidgetIterator &) const;
 private:
     bool m_visible;
 };
+
+template <typename Func>
+class ChildIteratorFunctor final : public ChildWidgetIterator {
+public:
+    explicit ChildIteratorFunctor(Func && f_): f(std::move(f_)) {}
+    void on_child_(Widget & widget) override { f(widget); }
+    void on_const_child_(const Widget &) {
+        throw std::runtime_error(
+            "ChildIteratorFunctor::on_const_child_: called constant "
+            "on_const_child_, which is not desired by this type.");
+    }
+    Func f;
+};
+
+template <typename Func>
+class ConstChildIteratorFunctor final : public ChildWidgetIterator {
+public:
+    explicit ConstChildIteratorFunctor(Func && f_): f(std::move(f_)) {}
+    void on_child_(Widget &) override {
+        throw std::runtime_error(
+            "ConstChildIteratorFunctor::on_child_: called non-constant "
+            "on_child_, which is not desired by this type.");
+    }
+    void on_const_child_(const Widget & widget) override { f(widget); }
+
+    Func f;
+};
+
+template <typename Func>
+void Widget::iterate_children_f(Func && f) {
+    ChildIteratorFunctor<Func> itr(std::move(f));
+    iterate_children(itr);
+}
+
+template <typename Func>
+void Widget::iterate_const_children_f(Func && f) const {
+    ConstChildIteratorFunctor<Func> itr(std::move(f));
+    iterate_children(itr);
+}
 
 } // end of ksg namespace

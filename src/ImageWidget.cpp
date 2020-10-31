@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ImageWidget.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
 *****************************************************************************/
 
 #include <ksg/ImageWidget.hpp>
-#include <ksg/Visitor.hpp>
 
 #include <common/Util.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -104,12 +103,6 @@ void ImageWidget::set_size(float w, float h) {
     update_size_post_load();
     check_invarients();
 }
-
-void ImageWidget::accept(Visitor & visitor)
-    { visitor.visit(*this); }
-
-void ImageWidget::accept(const Visitor & visitor) const
-    { visitor.visit(*this); }
 
 /* private */ void ImageWidget::draw
     (sf::RenderTarget & target, sf::RenderStates) const

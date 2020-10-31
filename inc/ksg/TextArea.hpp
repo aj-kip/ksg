@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: TextArea.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -36,8 +36,8 @@ class TextArea final : public Widget {
 public:
     using UString = Text::UString;
 
-    static constexpr const char * const TEXT_COLOR = "text-area-text-color";
-    static constexpr const char * const TEXT_SIZE  = "text-area-text-size" ;
+    static constexpr const char * const k_text_color = "text-area-text-color";
+    static constexpr const char * const k_text_size  = "text-area-text-size" ;
 
     TextArea();
 
@@ -54,10 +54,6 @@ public:
     float height() const override;
 
     void set_style(const StyleMap &) override;
-
-    void accept(Visitor &) override;
-
-    void accept(const Visitor &) const override;
 
     // <----------------------------- TextWidget ----------------------------->
 
@@ -83,8 +79,7 @@ public:
 
     void set_size(float w, float h);
 
-    void assign_font(const sf::Font & font)
-        { return m_draw_text.assign_font(&font); }
+    void assign_font(const sf::Font & font);
 
     const sf::Font & assigned_font() const
         { return m_draw_text.assigned_font(); }

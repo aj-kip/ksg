@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ProgressBar.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -29,13 +29,10 @@ namespace ksg {
 
 class ProgressBar final : public Widget {
 public:
-    static constexpr const char * const OUTER_COLOR =
-            "progress-bar-outer-color";
-    static constexpr const char * const INNER_FRONT_COLOR =
-            "progress-bar-inner-front-color";
-    static constexpr const char * const INNER_BACK_COLOR =
-            "progress-bar-inner-back-color";
-    static constexpr const char * const PADDING = "progress-bar-padding";
+    static constexpr const char * const k_outer_color       = "progress-bar-outer-color";
+    static constexpr const char * const k_inner_front_color = "progress-bar-inner-front-color";
+    static constexpr const char * const k_inner_back_color  = "progress-bar-inner-back-color";
+    static constexpr const char * const k_padding           = "progress-bar-padding";
 
     ProgressBar();
 
@@ -52,10 +49,6 @@ public:
     float height() const override;
 
     void set_style(const StyleMap &) override;
-
-    void accept(Visitor &) override;
-
-    void accept(const Visitor &) const override;
 
     void set_outer_color(sf::Color color_);
 

@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ArrowButton.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -20,24 +20,19 @@
 *****************************************************************************/
 
 #include <ksg/ArrowButton.hpp>
-#include <ksg/Visitor.hpp>
+
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include <cassert>
 
 namespace ksg {
 
-ArrowButton::ArrowButton(): m_dir(Direction::RIGHT) {}
+ArrowButton::ArrowButton(): m_dir(Direction::k_right) {}
 
 void ArrowButton::set_direction(Direction dir_) {
     m_dir = dir_;
     update_points();
 }
-
-void ArrowButton::accept(Visitor & visitor)
-    { visitor.visit(*this); }
-
-void ArrowButton::accept(const Visitor & visitor) const
-    { visitor.visit(*this); }
 
 /* private */ void ArrowButton::draw
     (sf::RenderTarget & target, sf::RenderStates) const
@@ -59,22 +54,22 @@ void ArrowButton::accept(const Visitor & visitor) const
     float offset = std::min(width() /2.f - padding()*2.f,
                             height()/2.f - padding()*2.f);
     switch (m_dir) {
-    case Direction::DOWN:
+    case Direction::k_down:
         m_draw_tri.set_point_a(anchor + VectorF(    0.f,  offset));
         m_draw_tri.set_point_b(anchor + VectorF(-offset, -offset));
         m_draw_tri.set_point_c(anchor + VectorF( offset, -offset));
         break;
-    case Direction::LEFT:
+    case Direction::k_left:
         m_draw_tri.set_point_a(anchor + VectorF(-offset,     0.f));
         m_draw_tri.set_point_b(anchor + VectorF( offset, -offset));
         m_draw_tri.set_point_c(anchor + VectorF( offset,  offset));
         break;
-    case Direction::RIGHT:
+    case Direction::k_right:
         m_draw_tri.set_point_a(anchor + VectorF( offset,     0.f));
         m_draw_tri.set_point_b(anchor + VectorF(-offset, -offset));
         m_draw_tri.set_point_c(anchor + VectorF(-offset,  offset));
         break;
-    case Direction::UP:
+    case Direction::k_up:
         m_draw_tri.set_point_a(anchor + VectorF(    0.f, -offset));
         m_draw_tri.set_point_b(anchor + VectorF(-offset,  offset));
         m_draw_tri.set_point_c(anchor + VectorF( offset,  offset));

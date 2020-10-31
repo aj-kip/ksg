@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: TextArea.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -21,10 +21,12 @@
 
 #include <ksg/TextArea.hpp>
 #include <ksg/TextButton.hpp>
-#include <ksg/Visitor.hpp>
+
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include <array>
 
+#include <cmath>
 #include <cassert>
 
 using VectorF = ksg::Widget::VectorF;
@@ -34,16 +36,18 @@ namespace ksg {
 void set_if_present(Text & text, const StyleMap & smap, const char * font_field,
                     const char * char_size_field, const char * text_color)
 {
-    StyleFinder sfinder(smap);
-    sfinder.call_if_found<const sf::Font *>
-        (font_field, [&](const sf::Font * ptr) { text.assign_font(ptr); });
-    sfinder.call_if_found<sf::Color>
-        (text_color, [&](sf::Color color){ text.set_color(color); });
-    sfinder.call_if_found<float>
-        (char_size_field, [&](float num) { text.set_character_size(int(num)); });
+    using namespace styles;
+    text.assign_font(smap, font_field);
+    if (auto * color = find<sf::Color>(smap, text_color))
+        text.set_color(*color);
+    if (auto * char_size = find<float>(smap, char_size_field))
+        text.set_character_size(int(std::round(*char_size)));
 }
 
 // ----------------------------------------------------------------------------
+
+/* static */ constexpr const char * const TextArea::k_text_color;
+/* static */ constexpr const char * const TextArea::k_text_size ;
 
 TextArea::TextArea() {}
 
@@ -62,16 +66,10 @@ float TextArea::width () const { return m_draw_text.width (); }
 float TextArea::height() const { return m_draw_text.height(); }
 
 void TextArea::set_style(const StyleMap & smap) {
-    set_if_present(m_draw_text, smap,
-                   Frame::GLOBAL_FONT, TEXT_SIZE, TEXT_COLOR);
+    using namespace styles;
+    set_if_present(m_draw_text, smap, k_global_font, k_text_size, k_text_color);
     recompute_geometry();
 }
-
-void TextArea::accept(Visitor & visitor)
-    { visitor.visit(*this); }
-
-void TextArea::accept(const Visitor & visitor) const
-    { visitor.visit(*this); }
 
 void TextArea::issue_auto_resize() {
     //m_draw_text.relieve_size_limit();
@@ -79,8 +77,7 @@ void TextArea::issue_auto_resize() {
 }
 
 void TextArea::set_text(const UString & str) {
-    UString temp(str);
-    m_draw_text.swap_string(temp);
+    m_draw_text.set_string(str);
     recompute_geometry();
 }
 
@@ -101,6 +98,11 @@ void TextArea::set_height(float h) {
 
 void TextArea::set_size(float w, float h) {
     m_draw_text.set_limiting_dimensions(w, h);
+    recompute_geometry();
+}
+
+void TextArea::assign_font(const sf::Font & font) {
+    m_draw_text.assign_font(&font);
     recompute_geometry();
 }
 

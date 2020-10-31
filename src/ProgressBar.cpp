@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ProgressBar.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
 *****************************************************************************/
 
 #include <ksg/ProgressBar.hpp>
-#include <ksg/Visitor.hpp>
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
@@ -28,12 +27,17 @@ namespace ksg {
 
 namespace {
 
-static const char * const FILL_OUT_OF_RANGE_MSG =
+static const char * const k_fill_out_of_range_msg =
     "ProgressBar::set_fill_amount: fill amount is not in range: [0 1].";
 
 } // end of <anonymous> namespace
 
 using VectorF = ksg::Widget::VectorF;
+
+/* static */ constexpr const char * const ProgressBar::k_outer_color      ;
+/* static */ constexpr const char * const ProgressBar::k_inner_front_color;
+/* static */ constexpr const char * const ProgressBar::k_inner_back_color ;
+/* static */ constexpr const char * const ProgressBar::k_padding          ;
 
 ProgressBar::ProgressBar(): m_fill_amount(0.f), m_padding(0.f) {}
 
@@ -59,25 +63,24 @@ float ProgressBar::height() const
     { return m_outer.height(); }
 
 void ProgressBar::set_style(const StyleMap & smap) {
-    using std::bind;
-    using namespace std::placeholders;
-    StyleFinder sfinder(smap);
-    sfinder.set_if_found(PADDING, &m_padding);
-    sfinder.call_if_found<sf::Color>
-        (OUTER_COLOR, bind(&DrawRectangle::set_color, &m_outer, _1));
-    sfinder.call_if_found<sf::Color>
-        (INNER_FRONT_COLOR, bind(&DrawRectangle::set_color, &m_inner_front, _1));
-    sfinder.call_if_found<sf::Color>
-        (INNER_BACK_COLOR, bind(&DrawRectangle::set_color, &m_inner_back, _1));
+    if (auto * pad = styles::find<float>(smap, k_padding)) {
+        m_padding = *pad;
+    }
+
+    // it is 2020, it is time to use c++17
+    for (auto [key, drect] : {
+         std::make_pair(k_outer_color      , &m_outer      ),
+         std::make_pair(k_inner_front_color, &m_inner_front),
+         std::make_pair(k_inner_back_color , &m_inner_back )
+     }) {
+        if (auto * color = styles::find<sf::Color>(smap, key)) {
+            drect->set_color(*color);
+        }
+    }
+
     update_positions_using_outer();
     update_sizes_using_outer();
 }
-
-void ProgressBar::accept(Visitor & visitor)
-    { visitor.visit(*this); }
-
-void ProgressBar::accept(const Visitor & visitor) const
-    { visitor.visit(*this); }
 
 void ProgressBar::set_outer_color(sf::Color color_)
     { m_outer.set_color(color_); }
@@ -90,7 +93,7 @@ void ProgressBar::set_inner_back_color(sf::Color color_)
 
 void ProgressBar::set_fill_amount(float fill_amount) {
     if (fill_amount < 0.f or fill_amount > 1.f)
-        throw std::out_of_range(FILL_OUT_OF_RANGE_MSG);
+        throw std::out_of_range(k_fill_out_of_range_msg);
     m_fill_amount = fill_amount;
     set_size(width(), height());
 }

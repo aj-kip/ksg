@@ -41,30 +41,34 @@ SOURCES += \
     ../src/TextArea.cpp      \
     ../src/TextButton.cpp    \
     ../src/Text.cpp          \
-    ../src/Widget.cpp
+    ../src/Widget.cpp        \
+    ../src/EditableText.cpp  \
+    ../src/FocusWidget.cpp
 
 HEADERS += \
     \ # private headers
     # <none>
     \ # public headers
-    ../inc/ksg/DrawCharacter.hpp \
-    ../inc/ksg/ArrowButton.hpp   \
-    ../inc/ksg/Button.hpp        \
-    ../inc/ksg/Draggable.hpp     \
-    ../inc/ksg/DrawTriangle.hpp  \
-    ../inc/ksg/Frame.hpp         \
-    ../inc/ksg/ImageWidget.hpp   \
-    ../inc/ksg/OptionsSlider.hpp \
-    ../inc/ksg/SelectionList.hpp \
-    ../inc/ksg/ProgressBar.hpp   \
-    ../inc/ksg/StyleMap.hpp      \
-    ../inc/ksg/TextArea.hpp      \
-    ../inc/ksg/TextButton.hpp    \
-    ../inc/ksg/Text.hpp          \
-    ../inc/ksg/Widget.hpp        \
-    ../inc/ksg/Visitor.hpp       \
-    ../inc/ksg/ForwardWidgets.hpp
+    ../inc/ksg/DrawCharacter.hpp  \
+    ../inc/ksg/ArrowButton.hpp    \
+    ../inc/ksg/Button.hpp         \
+    ../inc/ksg/Draggable.hpp      \
+    ../inc/ksg/DrawTriangle.hpp   \
+    ../inc/ksg/Frame.hpp          \
+    ../inc/ksg/ImageWidget.hpp    \
+    ../inc/ksg/OptionsSlider.hpp  \
+    ../inc/ksg/SelectionList.hpp  \
+    ../inc/ksg/ProgressBar.hpp    \
+    ../inc/ksg/StyleMap.hpp       \
+    ../inc/ksg/TextArea.hpp       \
+    ../inc/ksg/TextButton.hpp     \
+    ../inc/ksg/Text.hpp           \
+    ../inc/ksg/Widget.hpp         \
+    ../inc/ksg/Visitor.hpp        \
+    ../inc/ksg/ForwardWidgets.hpp \
+    ../inc/ksg/EditableText.hpp   \
+    ../inc/ksg/FocusWidget.hpp
 
 INCLUDEPATH += \
     ../inc           \
-    ../../common/inc
+    ../lib/cul/inc

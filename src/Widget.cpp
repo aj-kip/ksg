@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Widget.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -20,33 +20,53 @@
 *****************************************************************************/
 
 #include <ksg/Widget.hpp>
-#include <ksg/Visitor.hpp>
 
 #include <stdexcept>
 
 namespace {
 
 using Error = std::runtime_error;
-
+#if 0
 const char * const NOT_A_FRAME_MSG = "This widget is not a frame.";
-
+#endif
 } // end of <anonymous> namespace
 
 namespace ksg {
+
+ChildWidgetIterator::~ChildWidgetIterator() {}
 
 Widget::Widget(): m_visible(true) {}
 
 Widget::~Widget() {}
 
+/* experimental */ void Widget::iterate_children(ChildWidgetIterator && itr)
+    { iterate_children_(itr); }
+
+/* experimental */ void Widget::iterate_children(ChildWidgetIterator && itr) const
+    { iterate_const_children_(itr); }
+
+/* experimental */ void Widget::iterate_children(ChildWidgetIterator & itr)
+    { iterate_children_(itr); }
+
+/* experimental */ void Widget::iterate_children(ChildWidgetIterator & itr) const
+    { iterate_const_children_(itr); }
+#if 0
 void Widget::add_widget(Widget *)
     { throw Error(NOT_A_FRAME_MSG); }
+#endif
+/* protected experimental */ void Widget::iterate_children_(ChildWidgetIterator &)
+    {}
 
-void Widget::accept(Visitor &) {}
+/* protected experimental */ void Widget::iterate_const_children_(ChildWidgetIterator &) const
+    {}
 
-void Widget::accept(const Visitor &) const {}
+#if 0
+void Widget::add_children_to(ChildWidgetIterator &) {}
+
+void Widget::add_focus_widgets_to(std::vector<FocusWidget *> &)
+    {}
+#endif
 
 void Widget::issue_auto_resize() {}
-
-Visitor::Visitor() {}
 
 } // end of ksg namespace

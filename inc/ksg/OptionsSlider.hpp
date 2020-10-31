@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: OptionsSlider.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -51,13 +51,13 @@ public:
 
     void set_style(const StyleMap &) override;
 
-    void accept(Visitor &) override;
-
-    void accept(const Visitor &) const override;
-
     void set_size(float w, float h);
 
     void swap_options(std::vector<UString> & options);
+
+    void set_options(const std::vector<UString> &);
+
+    void set_options(std::vector<UString> &&);
 
     void select_option(std::size_t index);
 
@@ -71,9 +71,16 @@ public:
     void set_option_change_event(BlankFunctor && func);
 
 private:
+    static float size_for_arrows(float available_width, float available_height)
+        { return std::min(available_width, available_height); }
+
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
     void issue_auto_resize() override;
+
+    void iterate_children_(ChildWidgetIterator &) override;
+
+    void iterate_const_children_(ChildWidgetIterator &) const override;
 
     void recenter_text();
 

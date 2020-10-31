@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ArrowButton.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -24,8 +24,6 @@
 #include <ksg/Button.hpp>
 #include <ksg/DrawTriangle.hpp>
 
-// Kip's SFML GUI Library -> ksg
-
 namespace ksg {
 
 /** An Arrow Button is a clickable button with an arrow facing in one of four
@@ -34,7 +32,7 @@ namespace ksg {
 class ArrowButton final : public Button {
 public:
     enum class Direction {
-        UP, DOWN, RIGHT, LEFT
+        k_up, k_down, k_right, k_left
     };
 
     ArrowButton();
@@ -43,10 +41,6 @@ public:
 
     void set_arrow_color(sf::Color color_)
         { m_draw_tri.set_color(color_); }
-
-    void accept(Visitor &) override;
-
-    void accept(const Visitor &) const override;
 
 private:
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;

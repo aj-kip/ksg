@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Button.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,8 @@
 
 #include <ksg/Button.hpp>
 #include <ksg/Frame.hpp>
+
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include <cassert>
 
@@ -50,6 +52,11 @@ bool is_mouse_in(const sf::Event::MouseMoveEvent & mouse,
 
 namespace ksg {
 
+/* static */ constexpr const char * const Button::k_hover_back_color;
+/* static */ constexpr const char * const Button::k_hover_front_color;
+/* static */ constexpr const char * const Button::k_regular_back_color;
+/* static */ constexpr const char * const Button::k_regular_front_color;
+
 void Button::process_event(const sf::Event & evnt) {
     switch (evnt.type) {
     case sf::Event::MouseButtonReleased:
@@ -76,16 +83,18 @@ void Button::set_location(float x, float y) {
     m_outer.set_position(x, y);
     m_inner.set_position(x + m_padding, y + m_padding);
 
+    set_button_frame_size(width(), height());
     on_location_changed(old_x, old_y);
 }
 
 void Button::set_style(const StyleMap & smap) {
-    StyleFinder sfinder(smap);
-    sfinder.set_if_found(HOVER_BACK_COLOR, &m_hover.back);
-    sfinder.set_if_found(HOVER_FRONT_COLOR, &m_hover.front);
-    sfinder.set_if_found(REG_BACK_COLOR, &m_reg.back);
-    sfinder.set_if_found(REG_FRONT_COLOR, &m_reg.front);
-    sfinder.set_if_found(Frame::GLOBAL_PADDING, &m_padding);
+    using namespace styles;
+
+    set_if_found(smap, k_hover_back_color     , m_hover.back );
+    set_if_found(smap, k_hover_front_color    , m_hover.front);
+    set_if_found(smap, k_regular_back_color   , m_reg.back   );
+    set_if_found(smap, k_regular_front_color  , m_reg.front  );
+    set_if_found(smap, k_global_padding, m_padding    );
 
     m_outer.set_color(m_reg.back);
     m_inner.set_color(m_reg.front);
@@ -114,7 +123,7 @@ void Button::set_size(float width_, float height_) {
     on_size_changed(old_width, old_height);
 }
 
-/* protected */ Button::Button(): m_padding(0.f), m_is_highlighted(false) {}
+/* protected */ Button::Button() {}
 
 /* protected */ void Button::draw
     (sf::RenderTarget & target, sf::RenderStates) const
@@ -139,14 +148,44 @@ void Button::set_size(float width_, float height_) {
 
 /* private */ void Button::deselect() {
     m_is_highlighted = false;
-    m_outer.set_color(m_reg.back);
     m_inner.set_color(m_reg.front);
+    if (has_focus()) {
+        m_outer.set_color(m_hover.front);
+    } else {
+        m_outer.set_color(m_reg.back);
+    }
 }
 
 /* private */ void Button::highlight() {
     m_is_highlighted = true;
-    m_outer.set_color(m_hover.back);
     m_inner.set_color(m_hover.front);
+    if (has_focus()) {
+        m_outer.set_color(m_hover.front);
+    } else {
+        m_outer.set_color(m_hover.back);
+    }
+}
+#if 0
+/* private */ void Button::add_focus_widgets_to
+    (std::vector<FocusWidget *> & cont)
+{
+    cont.push_back(this);
+}
+#endif
+/* private */ void Button::process_focus_event(const sf::Event & event) {
+    if (event.type == sf::Event::KeyReleased) {
+        if (event.key.code == sf::Keyboard::Return) {
+            m_press_functor();
+        }
+    }
+}
+
+/* private */ void Button::notify_focus_gained() {
+    m_outer.set_color(m_hover.front);
+}
+
+/* private */ void Button::notify_focus_lost() {
+    m_outer.set_color(m_reg.back);
 }
 
 } // end of ksg namespace

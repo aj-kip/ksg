@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Text.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -50,7 +50,6 @@
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
-#include <iostream>
 #include <array>
 #include <memory>
 
@@ -59,560 +58,340 @@
 using UChar                  = ksg::Text::UString::value_type;
 using LineBreakList          = std::vector<int>;
 using VertexContainer        = std::vector<sf::Vertex>;
-using DrawCharacterContainer = std::vector<ksg::DrawCharacter>;
 using UString                = ksg::Text::UString;
-
-namespace ksg {
+using FontMtPtr              = ksg::detail::FontMtPtr;
+using TextSize               = ksg::Text::TextSize;
+using VectorF                = ksg::Text::VectorF;
+using InvalidArg             = std::invalid_argument;
 
 namespace {
 
-/** The purpose of this class is to provide an interface to the word
- *  wrapping algorithm, defined as a private static function.
- *  This is a means to simplify that algorithm by restricting access via
- *  encapsulation.
- */
-class WrapInfo {
-public:
-    WrapInfo(const DrawCharacterContainer & draw_characters_,
-             const UString & str_, float line_width_):
-        m_draw_characters_ptr(&draw_characters_), m_str_ptr(&str_),
-        m_line_width(line_width_) {}
+bool is_whitespace(UChar c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
+bool is_newline   (UChar c) { return c == '\n'; }
 
-    UChar char_identity(int index) const
-        { return (*m_str_ptr)[std::size_t(index)]; }
+// each iterator is a chunk begining
+// we can and SHOULD test this! :)
+std::vector<UString::const_iterator> find_chunks_dividers(const UString &);
 
-    float char_advance(int index) const
-        { return (*m_draw_characters_ptr)[std::size_t(index)].advance(); }
-
-    float line_width() const
-        { return m_line_width; }
-
-    int char_count() const
-        { return int(m_str_ptr->length()); }
-
-    void swap_line_breaks(LineBreakList & breaks)
-        { m_line_breaks.swap(breaks); }
-
-private:
-    LineBreakList m_line_breaks;
-    const DrawCharacterContainer * m_draw_characters_ptr;
-    const UString * m_str_ptr;
-    float m_line_width;
-};
-
-std::out_of_range make_invalid_index_error(const char * preface);
-
-bool relief_should_update(float * dim);
-
-#ifdef MACRO_COMPILER_CLANG
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wfloat-equal"
-#endif
-
-bool is_sentinel(float a, float b) { return a == b; }
-
-#ifdef MACRO_COMPILER_CLANG
-#   pragma clang diagnostic pop
-#endif
-
-DrawCharacter * get_draw_character
-    (std::vector<DrawCharacter> * chars_uptr, int index);
+void place_renderables(const sf::Font & font, const UString & ustr,
+       float width_constraint, int char_size, sf::Color color,
+       std::vector<ksg::detail::DrawableCharacter> & renderables);
 
 } // end of <anonymous> namespace
 
-Text::Text():
-    m_string(),
-    m_draw_characters_uptr(nullptr),
-    m_end_visible_char_index(0),
-    m_font_ptr(nullptr),
-    m_character_size(0),
-    m_width_limit (std::numeric_limits<float>::infinity()),
-    m_height_limit(std::numeric_limits<float>::infinity()),
-    m_bounds()
-{
-    m_dbounds.set_color(sf::Color(64, 0, 0));
+namespace ksg {
+
+/* static */ constexpr const int   Text::k_max_string_length;
+/* static */ constexpr const float Text::k_inf;
+
+void Text::set_string(const UString & str) {
+    UString temp(str);
+    set_string(std::move(temp));
 }
 
-Text::Text(const Text & lhs):
-    m_string                (lhs.m_string),
-    m_draw_characters_uptr  (nullptr),
-    m_end_visible_char_index(lhs.m_end_visible_char_index),
-    m_font_ptr              (lhs.m_font_ptr),
-    m_character_size        (lhs.m_character_size),
-    m_color                 (lhs.m_color),
-    m_breaklist             (lhs.m_breaklist),
-    m_width_limit           (lhs.m_width_limit),
-    m_height_limit          (lhs.m_height_limit),
-    m_bounds                (lhs.m_bounds),
-    m_dbounds               (lhs.m_dbounds)
-{
-    if (lhs.m_draw_characters_uptr) {
-        m_draw_characters_uptr = new DrawCharacterArray(*lhs.m_draw_characters_uptr);
-    }
-    check_invarients();
-}
-
-Text::Text(Text && lhs):
-    Text()
-    { swap(lhs); }
-
-Text & Text::operator = (const Text & lhs) {
-    if (&lhs != this) {
-        Text temp(lhs);
-        swap(temp);
-    }
-    return *this;
-}
-
-Text & Text::operator = (Text && lhs) {
-    swap(lhs);
-    return *this;
-}
-
-Text::~Text() {
-    if (m_draw_characters_uptr)
-        delete m_draw_characters_uptr;
-}
-
-void Text::swap_string(UString & str) {
+void Text::set_string(UString && str) {
     m_string.swap(str);
-    if (!m_string.empty()) {
-        if (!m_draw_characters_uptr)
-            m_draw_characters_uptr = new DrawCharacterArray;
-        m_draw_characters_uptr->clear();
-        m_draw_characters_uptr->resize(m_string.size(), DrawCharacter());
-    }
-    m_end_visible_char_index = 0;
     update_geometry();
-    check_invarients();
 }
 
-void Text::set_limiting_width(float w)
-    { set_limiting_dimensions(w, m_height_limit); }
+void Text::set_limiting_width(float w) {
+    set_limiting_dimensions(w, m_height_constraint);
+}
 
-void Text::set_limiting_height(float h)
-    { set_limiting_dimensions(m_width_limit, h); }
+void Text::set_limiting_height(float h) {
+    set_limiting_dimensions(m_width_constraint, h);
+}
+
+void Text::enable_bottom_cutting() { m_allow_bottom_cuts = true; }
+
+void Text::disable_bottom_cutting() { m_allow_bottom_cuts = false; }
 
 void Text::set_limiting_dimensions(float w, float h) {
-    static constexpr const char * const INVALID_VALUES_MSG =
-        "Text::set_limiting_dimensions: Width and height must be positive "
-        "real numbers or infinity (for no limit).";
-
-    auto is_valid = [](float x) {
-        return x > 0.f && !util::is_nan(x) &&
-               !is_sentinel(x, -std::numeric_limits<float>::infinity());
+    const static auto make_bad_dim_msg = [](const char * dimname) {
+        return std::string("ksg::Text::set_limiting_dimensions: ") +
+               dimname + " must be a positive real number, or infinity.";
     };
-
-    if (!is_valid(w) || !is_valid(h))
-        throw std::invalid_argument(INVALID_VALUES_MSG);
-
-    m_width_limit  = w;
-    m_height_limit = h;
-    m_dbounds.set_size(w, h);
+    if (w <= 0.f) { throw InvalidArg(make_bad_dim_msg("width" )); }
+    if (h <= 0.f) { throw InvalidArg(make_bad_dim_msg("height")); }
+    m_width_constraint  = w;
+    m_height_constraint = h;
     update_geometry();
-    check_invarients();
 }
 
 void Text::relieve_width_limit() {
-    if (relief_should_update(&m_width_limit))
-        update_geometry();
+    set_limiting_dimensions(k_inf, m_height_constraint);
 }
 
 void Text::relieve_height_limit() {
-    if (relief_should_update(&m_height_limit))
-        update_geometry();
+    set_limiting_dimensions(m_width_constraint, k_inf);
 }
 
 void Text::relieve_size_limit() {
-    if (relief_should_update(&m_height_limit) ||
-        relief_should_update(&m_width_limit )   )
-    {
-        update_geometry();
-    }
+    set_limiting_dimensions(k_inf, k_inf);
 }
 
-void Text::set_character_size(int size) {
-    m_character_size = size;
+void Text::set_character_size(int char_size) {
+    m_char_size = char_size;
     update_geometry();
-    check_invarients();
 }
 
-void Text::set_color(sf::Color color_) {
-    m_color = color_;
-    if (!m_draw_characters_uptr) return;
-    for (DrawCharacter & dc : *m_draw_characters_uptr)
-        dc.set_color(color_);
-    check_invarients();
+void Text::set_color(sf::Color color) {
+    m_color = color;
 }
 
 void Text::set_location(float x, float y) {
-    VectorF offset = VectorF(x, y) - location();
-    if (!m_draw_characters_uptr) return;
-    for (DrawCharacter & dc : *m_draw_characters_uptr)
-        dc.move(offset.x, offset.y);
-    m_dbounds.set_position(m_bounds.left = x, m_bounds.top = y);
-    check_invarients();
+    m_bounds.left = x;
+    m_bounds.top = y;
+    update_geometry();
 }
 
-void Text::assign_font(const sf::Font * font_ptr) {
-    m_font_ptr = font_ptr;
+void Text::set_location(VectorF r) {
+    set_location(r.x, r.y);
+}
+
+void Text::assign_font(const sf::Font * ptr) {
+    m_font_ptr = FontMtPtr(ptr);
     update_geometry();
-    check_invarients();
+}
+
+void Text::assign_font(const std::shared_ptr<const sf::Font> & ptr) {
+    m_font_ptr = FontMtPtr(ptr);
+    update_geometry();
 }
 
 void Text::set_color_for_character(int index, sf::Color clr) {
-    check_invarients();
-    if (index >= int(m_string.length()))
-        throw make_invalid_index_error("Text::set_color_for_index");
-    (*m_draw_characters_uptr)[std::size_t(index)].set_color(clr);
-    check_invarients();
+    m_renderables.at(std::size_t(index)).set_color(clr);
 }
 
-Text::VectorF Text::character_location(int index) const {
-    check_invarients();
-    const auto * dc = get_draw_character(m_draw_characters_uptr, index);
-    if (dc) return dc->location();
-    throw make_invalid_index_error("Text::character_location");
+VectorF Text::character_location(int index) const {
+    if (m_renderables.size() == std::size_t(index)) {
+        return location() + VectorF(m_bounds.width, 0);
+    } else if (m_renderables.size() > std::size_t(index)) {
+        return m_renderables.at(std::size_t(index)).location();
+    }
+    throw std::out_of_range(
+        "Text::character_location: index must be [0 len], where \"len\" is "
+        "the length of this text's string.");
 }
 
-float Text::character_width (int index) const {
-    check_invarients();
-    const auto * dc = get_draw_character(m_draw_characters_uptr, index);
-    if (dc) return dc->width() + dc->advance();
-    throw make_invalid_index_error("Text::character_width");
+VectorF Text::location() const {
+    return VectorF(m_bounds.left, m_bounds.top);
 }
 
-float Text::character_height(int index) const {
-    check_invarients();
-    const auto * dc = get_draw_character(m_draw_characters_uptr, index);
-    if (dc) return dc->width() + dc->height();
-    throw make_invalid_index_error("Text::character_height");
+float Text::width() const { return m_bounds.width; }
+
+float Text::height() const { return m_bounds.height; }
+
+float Text::line_height() const {
+    if (!has_font_assigned()) return 0.f;
+    return font_ptr()->getLineSpacing(m_char_size);
 }
+
+const UString & Text::string() const
+    { return m_string; }
+
+bool Text::has_font_assigned() const
+    { return font_ptr(); }
 
 const sf::Font & Text::assigned_font() const {
-    check_invarients();
-    if (!m_font_ptr) {
-        throw std::runtime_error("Text::assigned_font: Cannot access font, "
-                                 "Text does not have a font assigned to it.");
-    }
-    return *m_font_ptr;
+    return *font_ptr();
 }
 
-void Text::swap(Text & lhs) {
-    m_string.swap(lhs.m_string);
-    std::swap(m_draw_characters_uptr  , lhs.m_draw_characters_uptr);
-    std::swap(m_end_visible_char_index, lhs.m_end_visible_char_index);
-    std::swap(m_font_ptr              , lhs.m_font_ptr);
-    std::swap(m_character_size        , lhs.m_character_size);
-    std::swap(m_color                 , lhs.m_color);
-    m_breaklist.swap(lhs.m_breaklist);
-    std::swap(m_width_limit           , lhs.m_width_limit);
-    std::swap(m_height_limit          , lhs.m_height_limit);
-    std::swap(m_bounds                , lhs.m_bounds);
-    std::swap(m_dbounds               , lhs.m_dbounds);
-    check_invarients();
-    lhs.check_invarients();
+int Text::character_size() const { return m_char_size; }
+
+TextSize Text::measure_text(const UString & ustring) const {
+    return measure_text(assigned_font(), m_char_size, ustring);
 }
 
-Text::TextSize Text::measure_text(const UString & ustr) {
-    if (!m_font_ptr) {
-        throw std::runtime_error(
-            "Text::measure_text: Cannot measure text size using an instance "
-            "with no font assigned.");
-    }
-    return measure_text(*m_font_ptr, unsigned(m_character_size), ustr);
+float Text::measure_width(UStringConstIter beg, UStringConstIter end) {
+    return Text::measure_width(assigned_font(), m_char_size, beg, end);
 }
 
-/* static */ Text::TextSize Text::measure_text
+float Text::maximum_height(UStringConstIter beg, UStringConstIter end) {
+    return Text::maximum_height(assigned_font(), m_char_size, beg, end);
+}
+
+bool Text::is_visible() const {
+    return !m_string.empty() && has_font_assigned();
+}
+
+/* static */ TextSize Text::measure_text
     (const sf::Font & font, unsigned character_size, const UString & str)
 {
-    TextSize rv;
-    for (auto uchr : str) {
-        const auto & glyph = font.getGlyph(uchr, character_size, false);
-        rv.width += glyph.advance + glyph.bounds.width;
-        rv.height = std::max(rv.height, glyph.bounds.height);
+    return measure_text(font, character_size, str.begin(), str.end());
+}
+
+/* static */ TextSize Text::measure_text
+    (const sf::Font & font, unsigned character_size,
+     UStringConstIter beg, UStringConstIter end)
+{
+    return TextSize { measure_width(font, character_size, beg, end),
+                      font.getLineSpacing(character_size) };
+}
+
+/* static */ float Text::measure_width
+    (const sf::Font & font, unsigned character_size,
+     UStringConstIter beg, UStringConstIter end)
+{
+    assert(beg <= end);
+    float w = 0.f;
+    for (auto itr = beg; itr != end; ++itr) {
+        const auto & glyph = font.getGlyph(*itr, character_size, false);
+        w += glyph.advance;
+        if (itr + 1 != end) {
+            w += font.getKerning(*itr, *(itr + 1), character_size);
+        }
     }
-    rv.height = std::max(rv.height, font.getLineSpacing(character_size));
-    return rv;
+    return w;
+}
+
+/* static */ float Text::maximum_height
+    (const sf::Font & font, unsigned character_size,
+     UStringConstIter beg, UStringConstIter end)
+{
+    float h = 0.f;
+    for (auto itr = beg; itr != end; ++itr) {
+        h = std::max(h, font.getGlyph(*itr, character_size, false).bounds.height);
+    }
+    return h;
+}
+
+/* static */ void Text::run_tests() {
+    {
+    UString ustr = U"Hello World!";
+    auto rv = find_chunks_dividers(ustr);
+    assert(rv.size() == 3);
+    assert(rv[0] - ustr.begin() == 5);
+    assert(rv[1] - ustr.begin() == 6);
+    assert(rv[2] == ustr.end());
+    }
+    {
+    UString ustr = U"Hello\nWorld";
+    auto rv = find_chunks_dividers(ustr);
+    assert(rv.size() == 3);
+    assert(rv[0] - ustr.begin() == 5);
+    assert(rv[1] - ustr.begin() == 6);
+    assert(rv[2] == ustr.end());
+    }
+    {
+    UString ustr = U"Je \nk";
+    auto rv = find_chunks_dividers(ustr);
+    assert(rv.size() == 4);
+    assert(rv[0] - ustr.begin() == 2);
+    assert(rv[1] - ustr.begin() == 3);
+    assert(rv[2] - ustr.begin() == 4);
+    assert(rv[3] == ustr.end());
+    }
 }
 
 /* private */ void Text::draw
     (sf::RenderTarget & target, sf::RenderStates states) const
 {
-    // no font set
-    if (!m_font_ptr) return;
-
-    // no string to render
-    if (m_string.empty()) return;
-    assert(m_draw_characters_uptr);
-
-    // draw the m_dbounds to get a visual of the text bounds
-    // target.draw(m_dbounds);
-
-    states.texture = &m_font_ptr->getTexture(unsigned(m_character_size));
-    assert(m_draw_characters_uptr->size() < MAX_STRING_LEN);
-    assert(m_end_visible_char_index > 0);
-    int end_vis_char = m_end_visible_char_index;
-    // enforce const correctness
-    const DrawCharacterArray & draw_characters = *m_draw_characters_uptr;
-    for (std::size_t i = 0; true; ++i) {
-        // loop condition
-        if (i == draw_characters.size() || int(i) == end_vis_char)
-            break;
-        if (m_string[i] == U'\n')
-            continue;
-        target.draw(draw_characters[i], states);
+    if (!has_font_assigned()) return;
+    states.texture = &font_ptr()->getTexture(unsigned(m_char_size));
+    states.transform.translate(m_bounds.left, m_bounds.top);
+    for (const auto & dc : m_renderables) {
+        target.draw(dc, states);
     }
 }
 
-/* private */ void Text::update_vertex_sizes() {
-    assert(m_font_ptr);
-    assert(m_character_size != 0);
-    assert(!m_string.empty());
-    assert(m_draw_characters_uptr);
-
-    for (std::size_t i = 0; i != m_string.size(); ++i) {
-        // bolding not supported (yet :3)
-        const auto & glyph = m_font_ptr->getGlyph
-            (sf::Uint32(m_string[i]), unsigned(m_character_size), false);
-
-        (*m_draw_characters_uptr)[i] = DrawCharacter(glyph, m_color);
+/* private */ const sf::Font * Text::font_ptr() const noexcept {
+    if (m_font_ptr.is_type<const sf::Font *>()) {
+        return m_font_ptr.as<const sf::Font *>();
+    } else if (m_font_ptr.is_type<std::shared_ptr<const sf::Font>>()) {
+        return m_font_ptr.as<std::shared_ptr<const sf::Font>>().get();
+    } else {
+        return nullptr;
     }
 }
 
-static bool line_break_list_in_order(const std::vector<int> & line_breaks);
+void Text::update_geometry() {
+    if (!has_font_assigned() || m_char_size == 0 ||
+        (m_string.empty() && m_renderables.empty()))
+    { return; }
 
-using ConstStringItr = std::u32string::const_iterator;
+    place_renderables(m_renderables);
 
-/** Calculates the maximum height of any character found in [beg end).
- *  @param beg The first character in the sequence
- *  @param end One past the end of the character sequence (consistent with the STL)
- *  @param font SFML Font being used to render the characters.
- *  @param char_size The size of the characters
- *  @return Returns in pixels the height of the tallest character.
- */
-static float max_char_height
-    (ConstStringItr beg, ConstStringItr end, const sf::Font & font,
-     int char_size);
-
-/* private */ void Text::update_vertex_positions()
-{
-    assert(line_break_list_in_order(m_breaklist));
-
-    assert(m_font_ptr);
-    assert(m_character_size != 0);
-    assert(!m_string.empty());
-
-    // make sure breaklist requirements met for assumptions needed by this
-    // function
-    if (m_breaklist.empty())
-        m_breaklist.push_back(int(m_string.length()));
-    if (m_breaklist.back() != int(m_string.length()))
-        m_breaklist.push_back(int(m_string.length()));
-
-    assert(!m_breaklist.empty());
-    assert(m_breaklist.back() == int(m_string.size()));
-
-    VectorF write_pos = location();
-    const VectorF boundry_c = location() + VectorF(m_width_limit, m_height_limit);
-    const float line_height_c = m_font_ptr->getLineSpacing(unsigned(m_character_size));
-
-    // we will destroy the line breaks list, reverse it so back comes first
-    std::reverse(m_breaklist.begin(), m_breaklist.end());
-
-    // initial hieght...
-    write_pos.y += max_char_height
-        (m_string.begin(), m_string.begin() + m_breaklist.back(), *m_font_ptr,
-         m_character_size);
-
-    assert(m_string.length() < std::numeric_limits<int>::max());
-    for (int i = 0; i != int(m_string.length()); ++i) {
-        // draw will render [0 m_end...) characters
-        m_end_visible_char_index = i + 1;
-        // regular character positioning, verticies for this quad
-        DrawCharacter & dc = *get_draw_character(m_draw_characters_uptr, i);
-
-        // conditions for skipping/not rendering characters
-        if (!m_breaklist.empty())
-        {
-            if (i == m_breaklist.back()) {
-                // start writing next line
-                write_pos = VectorF(location().x, write_pos.y + line_height_c);
-                if (write_pos.y > boundry_c.y)
-                    break; // out of char index loop
-                m_breaklist.pop_back();
-                dc.set_color(sf::Color(0, 0, 0, 0));
-                continue;
-            }
-        }
-        else if (   write_pos.x > boundry_c.x
-                 || dc.location().x + dc.width() >= boundry_c.x)
-        {
-            dc.set_color(sf::Color(0, 0, 0, 0));
-            write_pos = VectorF(location().x, write_pos.y + line_height_c);
-            continue;
-        }
-
-        // === in char indexing loop ===
-
-        // move to proper position
-        dc.move(write_pos.x, write_pos.y);
-        trim_char_quad_and_update_bounds(dc);
-
-        write_pos.x += dc.advance();
-    } // end of char indexing loop
-    m_breaklist.clear();
-}
-
-void Text::trim_char_quad_and_update_bounds(DrawCharacter & dc) {
-    const VectorF boundry_c = location() + VectorF(m_width_limit, m_height_limit);
-    const float dc_right = dc.location().x + dc.width();
-    if (dc_right - m_bounds.left > boundry_c.x) {
-        m_bounds.width = m_width_limit;
-        dc.cut_on_right(boundry_c.x);
-    } else if (dc_right - m_bounds.left > m_bounds.width) {
-        m_bounds.width = dc_right - m_bounds.left;
-    }
-
-    // trim bottom off
-    const float dc_bottom = dc.location().y + dc.height();
-    if (dc_bottom - m_bounds.top > boundry_c.y) {
-        m_bounds.height = m_height_limit;
-        dc.cut_on_bottom(boundry_c.y);
-    } else if (dc_bottom - m_bounds.top > m_bounds.height) {
-        m_bounds.height = dc_bottom - m_bounds.top;
-    }
-}
-
-static void do_greedy_wrapping(WrapInfo & nfo);
-
-/* private */ void Text::update_geometry() {
-    // can our verticies have sizes, do we even have verticies?
-    if (!is_ready_for_geometry_update())
-        return;
-
+    float right_most  = -k_inf;
+    float bottom_most = -k_inf;
     m_bounds.width = m_bounds.height = 0.f;
-
-    update_vertex_sizes();
-    WrapInfo cnfo(*m_draw_characters_uptr, m_string, m_width_limit);
-    m_breaklist.clear();
-    cnfo.swap_line_breaks(m_breaklist);
-    do_greedy_wrapping(cnfo); // wrapping algorithm
-    cnfo.swap_line_breaks(m_breaklist);
-
-    update_vertex_positions();
-
-    m_dbounds.set_position(m_bounds.left , m_bounds.top   );
-    m_dbounds.set_size    (m_bounds.width, m_bounds.height);
-}
-
-bool Text::is_ready_for_geometry_update() const {
-    return (m_font_ptr && m_character_size != 0 && !m_string.empty() &&
-            m_draw_characters_uptr);
-}
-
-void Text::check_invarients() const {
-    if (m_draw_characters_uptr)
-        assert(m_string.length() == m_draw_characters_uptr->size());
-    else
-        assert(m_string.empty());
-    assert(m_string.length() <= MAX_STRING_LEN);
-}
-
-// <------------------------ rj::gui::Text Helper ---------------------------->
-
-static bool line_break_list_in_order(const std::vector<int> & line_breaks) {
-    if (line_breaks.empty()) return true;
-    for (std::size_t i = 1; i != line_breaks.size(); ++i) {
-        if (line_breaks[i] < line_breaks[i - 1])
-            return false;
+    for (const auto & dc : m_renderables) {
+        right_most  = std::max(right_most , dc.location().x + dc.width ());
+        bottom_most = std::max(bottom_most, dc.location().y + dc.height());
+        assert(&dc >= &m_renderables.front() && &dc <= &m_renderables.back());
     }
-    return true;
+    m_bounds.width  = right_most ;
+    m_bounds.height = bottom_most;
 }
 
-static bool is_space(UChar chr)
-    { return (chr == ' ' || chr == '\t' || chr == '\r'); }
-
-static void do_greedy_wrapping(WrapInfo & nfo) {
-    LineBreakList line_breaks;
-    bool in_word = false;
-    int word_end = -1;
-    float current_width_accum = 0.f;
-
-    for (int i = 0; i != nfo.char_count(); ++i) {
-        if (nfo.char_identity(i) == UChar('\n')) {
-            // is hard line break
-            line_breaks.push_back(i);
-            current_width_accum = 0.f;
-        } else if (current_width_accum > nfo.line_width()) {
-            // is soft line break
-            if (word_end == -1) {
-                // no other word on this line
-                line_breaks.push_back(i);
-            } else {
-                line_breaks.push_back(word_end);
-                i = word_end;
-            }
-            current_width_accum = 0.f;
-            word_end = -1;
-        } else if (is_space(nfo.char_identity(i))) {
-            // is whitespace
-            if (in_word) {
-                word_end = i;
-            }
-            in_word = false;
-        } else {
-            // is printable character
-            in_word = true;
-        }
-        current_width_accum += nfo.char_advance(i);
-    }
-    nfo.swap_line_breaks(line_breaks);
+void Text::place_renderables(std::vector<detail::DrawableCharacter> & renderables) const {
+    ::place_renderables(*font_ptr(), m_string, m_width_constraint,
+                        m_char_size, m_color, renderables);
 }
 
-static float max_char_height
-    (ConstStringItr beg, ConstStringItr end, const sf::Font & font,
-     int char_size)
-{
-    assert(char_size > 0);
-    // adjust for max possible height for characters
-    float max_height = 0.f;
-    for (auto itr = beg; itr != end; ++itr) {
-        // get glyph
-        const auto & glyph = font.getGlyph
-            (sf::Uint32(*itr), unsigned(char_size), false);
-        if (glyph.bounds.height > max_height)
-            max_height = glyph.bounds.height;
-    }
-    return max_height;
-}
+} // end of ksg namespace
 
 namespace {
 
-std::out_of_range make_invalid_index_error(const char * preface) {
-    return std::out_of_range(std::string(preface) +
-                             ": index exceeds length of the string.");
-}
+std::vector<UString::const_iterator> find_chunks_dividers(const UString & ustr) {
+    static const auto class_of_char = [](UChar c) {
+        if (is_whitespace(c) && !is_newline(c)) return 0;
+        if (is_newline   (c)) return 1;
+        return 2;
+    };
+    std::vector<UString::const_iterator> rv;
+    assert(!ustr.empty());
+    int char_class = class_of_char(ustr[0]);
 
-bool relief_should_update(float * dim) {
-    const float max_ = std::numeric_limits<float>::max();
-    if (is_sentinel(*dim, max_)) {
-        return false;
+    for (auto itr = ustr.begin(); itr != ustr.end(); ++itr) {
+        if (char_class == class_of_char(*itr)) continue;
+        rv.push_back(itr);
+        char_class = class_of_char(*itr);
     }
-    *dim = max_;
-    return true;
+    rv.push_back(ustr.end());
+    return rv;
 }
 
-DrawCharacter * get_draw_character
-    (std::vector<DrawCharacter> * chars_uptr, int index)
+void place_renderables(const sf::Font & font, const UString & ustr,
+       float width_constraint, int char_size, sf::Color color,
+       std::vector<ksg::detail::DrawableCharacter> & renderables)
 {
-    if (chars_uptr) {
-        if (index < int(chars_uptr->size()) and index >= 0)
-            return &(*chars_uptr)[std::size_t(index)];
+    renderables.clear();
+
+    if (ustr.empty()) {
+        // nothing to render
+        return;
     }
-    return nullptr;
+
+    renderables.reserve(ustr.size());
+    VectorF write_pos;
+    auto itr = ustr.begin();
+    for (auto chunk_end : find_chunks_dividers(ustr)) {
+        assert(itr <= chunk_end);
+        if (is_newline(*itr)) {
+            write_pos.x = 0.f;
+            write_pos.y += font.getLineSpacing(char_size);
+
+            itr = chunk_end;
+            continue;
+        }
+
+        auto chunk_width = ksg::Text::measure_width(font, char_size, itr, chunk_end);
+        if (write_pos.x + chunk_width > width_constraint) {
+            write_pos.x = 0.f;
+            write_pos.y += font.getLineSpacing(char_size);
+        }
+        for (auto jtr = itr; jtr != chunk_end; ++jtr) {
+            const auto & glyph = font.getGlyph(*jtr, char_size, false);
+            VectorF p(write_pos.x + glyph.bounds.left, write_pos.y + glyph.bounds.top + char_size);
+            renderables.emplace_back(p, glyph, color);
+            write_pos.x += glyph.advance;
+            if (jtr + 1 != ustr.end()) {
+                write_pos.x += font.getKerning(*jtr, *(jtr + 1), char_size);
+            }
+        }
+        itr = chunk_end;
+    }
 }
 
 } // end of <anonymous> namespace
-
-} // end of ksg namespace

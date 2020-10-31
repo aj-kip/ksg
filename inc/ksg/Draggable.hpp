@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Draggable.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,6 @@ class Draggable {
 protected:
     using MouseButton = sf::Mouse::Button;
 
-    Draggable(): m_dragged(false) {}
     virtual ~Draggable();
 
     /** @brief mouse_move updates the Draggable with the current mouse
@@ -80,10 +79,10 @@ protected:
      *  @note Set constraints will not take size into account, so this will
      *        have to be subtracted from the area parameter.
      */
-    void set_position_contraints(sf::IntRect area);
+    void set_drag_contraints(sf::IntRect area);
 
     /** Allows the draggable to be dragged to any position. */
-    void remove_position_contraints();
+    void remove_drag_contraints();
 
     /** When this function is called, it is provided the new coordinates where
      *  the rectangle object that was used when calling mouse_click(), should
@@ -94,12 +93,22 @@ protected:
      */
     virtual void update_drag_position(int drect_x, int drect_y) = 0;
 
+    /** Ignores all potential drag events regardless of where a mouse click
+     *  event occurs.
+     */
+    void ignore_drag_events() { m_watch_drag_events = false; }
+
+    /** Causes the draggable object to watch for drag events. This function
+     *  negates the effect of the ignore_drag_events method.
+     */
+    void watch_for_drag_events() { m_watch_drag_events = true; }
 private:
     static bool is_in_rect(int x, int y, const DrawRectangle & drect);
 
     bool has_position_contraints() const;
 
-    bool m_dragged;
+    bool m_watch_drag_events = true;
+    bool m_dragged = false;
     sf::Vector2i m_drag_offset;
     sf::IntRect m_position_contraints;
 };

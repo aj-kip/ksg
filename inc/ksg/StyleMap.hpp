@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: StyleMap.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -21,64 +21,64 @@
 
 #pragma once
 
-#include <common/StorageUnion.hpp>
 #include <common/MultiType.hpp>
 
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Font.hpp>
 
 #include <map>
 #include <string>
-#include <functional>
-
-namespace sf { class Font; }
+#include <memory>
 
 namespace ksg {
 
-using StylesField = MultiType<sf::Color, float, const sf::Font *>;
+using StylesField = MultiType<
+    sf::Color, float, const sf::Font *, std::shared_ptr<const sf::Font>
+>;
 
 using StyleMap = std::map<std::string, StylesField>;
 
+namespace styles {
+
+constexpr const char * const k_global_padding = "global-padding";
+constexpr const char * const k_global_font    = "global-font";
+
 StyleMap construct_system_styles();
 
-class Text;
+/** @brief  Attempts to load a font, add store it into a styles field directly.
+ *  @param  filename of the font to load
+ *  @return a style field, which stores a shared_ptr to the loaded font,
+ *          if loading the font failed, an empty styles field is returned
+ *          instead
+ */
+StylesField load_font(const std::string & filename);
 
-class StyleFinder {
-public:
-    template <typename T>
-    struct PointerTo {
-        using Type = T *;
-        using OriginalType = T;
-    };
-
-    StyleFinder(const StyleMap & styles): m_styles_ptr(&styles) {}
-
-    bool set_if_found(const char * field_name, sf::Color *);
-
-    bool set_if_found(const char * field_name, float *);
-
-    bool set_if_found(const char * field_name, PointerTo<const sf::Font *>::Type);
-
-    template <typename T, typename Func>
-    typename std::enable_if<StylesField::HasType<T>::VALUE, void>::
-    type call_if_found(const char * field_name, Func && f);
-
-    void assign_font_if_found(const char * field_name, Text & text);
-
-private:
-    const StylesField & find_field(const char * field_name) const;
-
-    StylesField find_field_nothrow(const char * field_name) const noexcept;
-
-    const StyleMap * m_styles_ptr;
-};
-
-template <typename T, typename Func>
-typename std::enable_if<StylesField::HasType<T>::VALUE, void>::
-type StyleFinder::call_if_found(const char * field_name, Func && f) {
-    T obj;
-    if (set_if_found(field_name, &obj))
-        f(std::cref(obj));
+template <typename T, typename KeyType, typename std::enable_if<StylesField::HasType<T>::k_value && std::is_pointer<T>::value, T>::type...>
+auto find(const StyleMap & smap, const KeyType & key) {
+    auto itr = smap.find(key);
+    if (itr != smap.end()) {
+        return itr->second.template as<T>();
+    }
+    return static_cast<T>(nullptr);
 }
 
-} // end of namespace ksg
+template <typename T, typename KeyType, typename std::enable_if<StylesField::HasType<T>::k_value && !std::is_pointer<T>::value, T>::type...>
+auto find(const StyleMap & smap, const KeyType & key) {
+    auto itr = smap.find(key);
+    if (itr != smap.end()) {
+        return &(itr->second.template as<T>());
+    }
+    return static_cast<const T *>(nullptr);
+}
 
+template <typename T, typename KeyType>
+typename std::enable_if<StylesField::HasType<T>::k_value, bool>::
+type set_if_found(const StyleMap & smap, const KeyType & key, T & obj) {
+    const T * gv = find<T>(smap, key);
+    if (gv) { obj = *gv; }
+    return gv;
+}
+
+} // end of styles namespace
+
+} // end of namespace ksg

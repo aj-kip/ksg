@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: DrawTriangle.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -27,20 +27,20 @@ namespace {
 
 using VectorF = DrawTriangle::VectorF;
 
-const int POINT_A = 0;
-const int POINT_B = 1;
-const int POINT_C = 2;
+constexpr const int k_point_a = 0;
+constexpr const int k_point_b = 1;
+constexpr const int k_point_c = 2;
 
 } // end of <anonymous> namesoace
 
 void DrawTriangle::set_point_a(float x, float y)
-    { m_verticies[POINT_A].position = VectorF(x, y); }
+    { m_verticies[k_point_a].position = VectorF(x, y); }
 
 void DrawTriangle::set_point_b(float x, float y)
-    { m_verticies[POINT_B].position = VectorF(x, y); }
+    { m_verticies[k_point_b].position = VectorF(x, y); }
 
 void DrawTriangle::set_point_c(float x, float y)
-    { m_verticies[POINT_C].position = VectorF(x, y); }
+    { m_verticies[k_point_c].position = VectorF(x, y); }
 
 void DrawTriangle::move(VectorF r) {
     for (sf::Vertex & v : m_verticies)
@@ -53,13 +53,13 @@ void DrawTriangle::set_location(float x, float y)
     { move(VectorF(x, y) - location()); }
 
 VectorF DrawTriangle::point_a() const
-    { return m_verticies[POINT_A].position; }
+    { return m_verticies[k_point_a].position; }
 
 VectorF DrawTriangle::point_b() const
-    { return m_verticies[POINT_C].position; }
+    { return m_verticies[k_point_c].position; }
 
 VectorF DrawTriangle::point_c() const
-    { return m_verticies[POINT_C].position; }
+    { return m_verticies[k_point_c].position; }
 
 VectorF DrawTriangle::location() const {
     VectorF loc;
@@ -68,7 +68,7 @@ VectorF DrawTriangle::location() const {
     return loc;
 }
 
-sf::Color DrawTriangle::color() const { return m_verticies[POINT_A].color; }
+sf::Color DrawTriangle::color() const { return m_verticies[k_point_a].color; }
 
 void DrawTriangle::set_color(sf::Color color_) {
     for (sf::Vertex & v : m_verticies)

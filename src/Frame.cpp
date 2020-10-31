@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Frame.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -22,8 +22,10 @@
 #include <common/Util.hpp>
 
 #include <ksg/Frame.hpp>
-#include <ksg/Visitor.hpp>
 #include <ksg/TextArea.hpp>
+#include <ksg/FocusWidget.hpp>
+
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include <stdexcept>
 #include <iostream>
@@ -31,122 +33,52 @@
 
 namespace {
 
-using Error            = std::runtime_error;
-using VectorF          = ksg::Frame::VectorF;
-using Widget           = ksg::Widget;
-using Text             = ksg::Text;
-using MouseButtonEvent = sf::Event::MouseButtonEvent;
-using Frame            = ksg::Frame;
-
-void update_title_geometry(VectorF location,
-                           const DrawRectangle & title_bar, Text * title);
-
-bool mouse_is_in(MouseButtonEvent mouse, const DrawRectangle &);
-
-Frame::ClickResponse default_click_func()
-    { return Frame::CONTINUE_OTHER_EVENTS; }
+using VectorF = ksg::Frame::VectorF;
 
 } // end of <anonymous> namespace
 
 namespace ksg {
 
-Frame::Frame():
-    m_padding(2.f), m_outer_padding(2.f),
-    m_draggable(false), m_title_visible(true),
-    m_click_in_frame(default_click_func)
+WidgetAdder::WidgetAdder
+    (Frame * frame_, const StyleMap * styles_, detail::LineSeperator * sep_):
+    m_the_line_sep(sep_),
+    m_styles(styles_),
+    m_parent(frame_)
 {
-    check_invarients();
-}
-
-void Frame::set_location(float x, float y) {
-    set_frame_location(x, y);
-    check_invarients();
-}
-
-void Frame::process_event(const sf::Event & event) {
-    assert(m_click_in_frame);
-    bool should_do_sub_events = true;
-    if (event.type == sf::Event::MouseButtonPressed &&
-        mouse_is_in(event.mouseButton, m_back))
-    {
-        should_do_sub_events = (m_click_in_frame() == CONTINUE_OTHER_EVENTS);
+    static constexpr const char * k_null_parent =
+        "WidgetAdder::WidgetAdder: [library error] Parent must not be null, "
+        "and line seperator must refer to something.";
+    if (!m_parent || !m_the_line_sep) {
+        throw std::invalid_argument(k_null_parent);
     }
-    if (should_do_sub_events) {
-        for (Widget * widget_ptr : m_widgets) {
-            if (widget_ptr->is_visible())
-                widget_ptr->process_event(event);
-        }
-    }
-    switch (event.type) {
-    case sf::Event::MouseButtonPressed:
-        mouse_click(event.mouseButton.x, event.mouseButton.y, m_title_bar);
-        break;
-    case sf::Event::MouseButtonReleased:
-        drag_release();
-        break;
-    case sf::Event::MouseMoved:
-        mouse_move(event.mouseMove.x, event.mouseMove.y);
-        break;
-    default: break;
-    }
-    check_invarients();
 }
 
-void Frame::set_style(const StyleMap & smap) {
-    StyleFinder sfinder(smap);
-    using namespace std::placeholders;
-    using std::bind;
-    sfinder.call_if_found<sf::Color>
-        (BACKGROUND_COLOR, bind(&DrawRectangle::set_color, &m_back, _1));
-    set_if_present(m_title, smap, GLOBAL_FONT, TITLE_SIZE, TITLE_COLOR);
+WidgetAdder::WidgetAdder(WidgetAdder && rhs)
+    { swap(rhs); }
 
-    sfinder.call_if_found<sf::Color>
-        (TITLE_BAR_COLOR, bind(&DrawRectangle::set_color, &m_title_bar, _1));
-    sfinder.call_if_found<sf::Color>
-        (WIDGET_BODY_COLOR, bind(&DrawRectangle::set_color, &m_widget_body, _1));
-    sfinder.set_if_found(GLOBAL_PADDING, &m_padding);
-    auto itr = smap.find(BORDER_SIZE);
-    if (itr == smap.end()) {
-        sfinder.set_if_found(GLOBAL_PADDING, &m_outer_padding);
-    } else if (itr->second.is_type<float>()) {
-        m_outer_padding = itr->second.as<float>();
-    }
-    for (Widget * widget_ptr : m_widgets)
-        widget_ptr->set_style(smap);
-    check_invarients();
+WidgetAdder::~WidgetAdder() noexcept(false) {
+    if (std::uncaught_exceptions() > 0) return;
+    if (!m_parent) return;
+    m_parent->finalize_widgets(
+        std::move(m_widgets), std::move(m_horz_spacers),
+        m_the_line_sep, m_styles);
 }
 
-float Frame::width() const {
-    return m_back.width();
+WidgetAdder & WidgetAdder::operator = (WidgetAdder && rhs) {
+    swap(rhs);
+    return *this;
 }
 
-float Frame::height() const {
-    return m_back.height();
+WidgetAdder & WidgetAdder::add(Widget & widget) {
+    // we check later whether or not this frame is trying to include itself
+    // see Frame::finalize_widgets(
+    // std::vector<Widget *> &&, std::vector<detail::HorizontalSpacer> &&,
+    // detail::LineSeperator *, const StyleMap *)
+    m_widgets.push_back(&widget);
+    return *this;
 }
 
-void Frame::set_size(float w, float h) {
-    m_back.set_size(w, h);
-    check_invarients();
-}
-
-void Frame::accept(Visitor & visitor) {
-    visitor.visit(*this);
-    check_invarients();
-}
-
-void Frame::accept(const Visitor & visitor) const
-    { visitor.visit(*this); }
-
-void Frame::add_widget(Widget * comp_ptr) {
-    if (!comp_ptr) {
-        throw std::invalid_argument("Frame::add_widget requires a non-nullptr "
-                                    "argument.");
-    }
-    m_widgets.push_back(comp_ptr);
-    check_invarients();
-}
-
-void Frame::add_horizontal_spacer() {
+WidgetAdder & WidgetAdder::add_horizontal_spacer() {
     // A little word on the C++ standard:
     // According to: http://stackoverflow.com/questions/5410035/when-does-a-stdvector-reallocate-its-memory-array
     // From C++ standard 23.2.4.2
@@ -158,6 +90,7 @@ void Frame::add_horizontal_spacer() {
     // </quote>
 
     // update and revalidate all pointers to spacers as necessary
+    using namespace detail;
     if (   m_horz_spacers.size() == m_horz_spacers.capacity()
         && !m_horz_spacers.empty())
     {
@@ -179,76 +112,170 @@ void Frame::add_horizontal_spacer() {
         assert(new_itr == (new_spacer_cont.data() + new_spacer_cont.size()));
         m_horz_spacers.swap(new_spacer_cont);
     }
-
-    // otherwise add a spacer as normal
     m_horz_spacers.push_back(HorizontalSpacer());
     m_widgets.push_back(&m_horz_spacers.back());
+
+    return *this;
+}
+
+WidgetAdder & WidgetAdder::add_line_seperator() {
+    m_widgets.push_back(m_the_line_sep);
+    return *this;
+}
+
+void WidgetAdder::swap(WidgetAdder & rhs) {
+    m_widgets.swap(rhs.m_widgets);
+    m_horz_spacers.swap(rhs.m_horz_spacers);
+    std::swap(m_the_line_sep, rhs.m_the_line_sep);
+    std::swap(m_styles, rhs.m_styles);
+    std::swap(m_parent, rhs.m_parent);
+}
+
+// ----------------------------------------------------------------------------
+
+/* static */ constexpr const char * const Frame::k_background_color ;
+/* static */ constexpr const char * const Frame::k_title_bar_color  ;
+/* static */ constexpr const char * const Frame::k_title_size       ;
+/* static */ constexpr const char * const Frame::k_title_color      ;
+/* static */ constexpr const char * const Frame::k_widget_body_color;
+/* static */ constexpr const char * const Frame::k_border_size      ;
+
+/* static */ constexpr const float Frame::k_default_padding;
+
+/* protected */ Frame::Frame()
+    { check_invarients(); }
+
+/* protected */ Frame::Frame(const Frame & lhs):
+    m_padding(lhs.m_padding),
+    m_border (lhs.m_border )
+{}
+
+/* protected */ Frame::Frame(Frame && lhs) { swap(lhs); }
+
+Frame & Frame::operator = (const Frame & lhs) {
+    if (this != &lhs) {
+        Frame temp(lhs);
+        swap(temp);
+    }
+    return *this;
+}
+
+Frame & Frame::operator = (Frame && lhs) {
+    if (this != &lhs) swap(lhs);
+    return *this;
+}
+
+void Frame::set_location(float x, float y) {
+    m_border.set_location(x, y);
     check_invarients();
 }
 
-void Frame::clear_all_widgets() {
-    m_widgets.clear();
-    m_horz_spacers.clear();
+void Frame::process_event(const sf::Event & event) {
+    auto gv = m_border.process_event(event);
+    if (!gv.skip_other_events) {
+        for (Widget * widget_ptr : m_widgets) {
+            if (widget_ptr->is_visible())
+                widget_ptr->process_event(event);
+        }
+        // perhaps I should process focus requests after the fact to give
+        // widgets the opportunity to make a request after an event
+        m_focus_handler.process_event(event);
+    }
+    if (gv.should_update_geometry) {
+        finalize_widgets();
+    }
+
     check_invarients();
 }
 
-void Frame::set_title(const UString & str) {
-    m_title.set_string(str);
-    if (m_title.string().empty())
-        set_title_visible(false);
+void Frame::set_style(const StyleMap & smap) {
+    m_border.set_style(smap);
+    styles::set_if_found(smap, styles::k_global_padding, m_padding);
+
+    for (Widget * widget_ptr : m_widgets)
+        widget_ptr->set_style(smap);
     check_invarients();
 }
 
-void Frame::set_title_visible(bool v) {
-    bool old_title_visible = m_title_visible;
-    m_draggable = m_title_visible = v;
-    if (old_title_visible != m_title_visible)
-        set_size(width(), height());
+VectorF Frame::location() const { return m_border.location(); }
+
+float Frame::width() const { return m_border.width(); }
+
+float Frame::height() const { return m_border.height(); }
+
+void Frame::set_size(float w, float h) {
+    m_border.set_size(w, h);
     check_invarients();
+}
+
+WidgetAdder Frame::begin_adding_widgets(const StyleMap & styles) {
+    return WidgetAdder(this, &styles, &m_the_line_seperator);
+}
+
+WidgetAdder Frame::begin_adding_widgets() {
+    return WidgetAdder(this, nullptr, &m_the_line_seperator);
+}
+
+void Frame::finalize_widgets(std::vector<Widget *> && widgets,
+    std::vector<detail::HorizontalSpacer> && spacers,
+    detail::LineSeperator * the_line_sep, const StyleMap * styles)
+{
+    static constexpr const char * k_must_know_line_sep =
+        "Frame::finalize_widgets: caller must know the line seperator to call "
+        "this function. This is meant to be called by a Widget Adder only.";
+    if (the_line_sep != &m_the_line_seperator) {
+        throw std::invalid_argument(k_must_know_line_sep);
+
+    }
+
+    static constexpr const char * k_cannot_contain_this =
+        "Frame::finalize_widgets: This frame may not contain itself.";
+    for (auto * widget : widgets) {
+        if (auto * frame_widget = dynamic_cast<Frame *>(widget)) {
+            if (frame_widget->contains(this)) {
+                throw std::invalid_argument(k_cannot_contain_this);
+            }
+        }
+    }
+
+    m_widgets     .swap(widgets);
+    m_horz_spacers.swap(spacers);
+
+    if (styles) {
+        set_style(*styles);
+        // styles must be provided in order to finalize widgets
+        finalize_widgets();
+    }
+    check_invarients();
+}
+
+void Frame::set_padding(float pixels) {
+    m_padding = pixels;
 }
 
 void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
     if (!is_visible()) return;
 
-    target.draw(m_back);
-    if (m_title_visible) {
-        target.draw(m_title_bar);
-        target.draw(m_title);
-    }
-    target.draw(m_widget_body);
+    target.draw(m_border);
     for (Widget * widget_ptr : m_widgets) {
         if (widget_ptr->is_visible())
             target.draw(*widget_ptr);
     }
-#   if 1
-    DrawRectangle dr;
-    dr.set_color(sf::Color::Red);
-    for (Widget * widget_ptr : m_widgets) {
-        if (!is_horizontal_spacer(widget_ptr)) continue;
-        dr.set_position(widget_ptr->location().x, widget_ptr->location().y);
-        dr.set_size    (widget_ptr->width()     , 20.f);
-        target.draw(dr);
-    }
-#   endif
 }
 
-/* private */ void Frame::set_frame_location(float x, float y) {
-    m_back.set_position(x, y);
-}
-
-void Frame::update_geometry() {
+void Frame::finalize_widgets() {
     // auto sizing
     issue_auto_resize();
 
     // must come before horizontal spacer updates
-    update_head_and_back_geometry();
+    m_border.update_geometry();
 
     // update horizontal spacer sizes
     update_horizontal_spacers();
 
-    const float start_x = m_widget_body.x() + m_padding;
+    const float start_x = m_border.widget_start().x + m_padding;
     float x = start_x;
-    float y = m_widget_body.y() + m_padding;
+    float y = m_border.widget_start().y + m_padding;
 
     float line_height = 0.f;
     float pad_fix     = 0.f;
@@ -258,7 +285,7 @@ void Frame::update_geometry() {
         line_height = 0.f;
         pad_fix = 0.f;
     };
-    const float right_limit_c = location().x + width();
+    const float k_right_limit = location().x + width();
     for (Widget * widget_ptr : m_widgets) {
         assert(widget_ptr);
         // horizontal overflow
@@ -266,7 +293,7 @@ void Frame::update_geometry() {
             advance_locals_to_next_line();
             continue;
         }
-        if (x + get_widget_advance(widget_ptr) > right_limit_c) {
+        if (x + get_widget_advance(widget_ptr) > k_right_limit) {
             advance_locals_to_next_line();
             // this widget_ptr is placed as the first element of the line
         }
@@ -281,21 +308,33 @@ void Frame::update_geometry() {
         x += get_widget_advance(widget_ptr);
         pad_fix = -m_padding;
     }
-    // note: there is no consideration given to "vertical overflow"
-    // not considering if additional widgets overflow the frame's
-    // height
 
     for (Widget * widget_ptr : m_widgets) {
         auto * frame_ptr = dynamic_cast<Frame *>(widget_ptr);
         if (frame_ptr)
-            frame_ptr->update_geometry();
+            frame_ptr->finalize_widgets();
     }
+
+    // note: there is no consideration given to "vertical overflow"
+    // not considering if additional widgets overflow the frame's
+    // height
+    std::vector<FocusWidget *> focus_widgets;
+    iterate_children_f([&focus_widgets](Widget & widget) {
+        if (auto * frame = dynamic_cast<Frame *>(&widget)) {
+            frame->m_focus_handler.clear_focus_widgets();
+        }
+        if (auto * focwid = dynamic_cast<FocusWidget *>(&widget)) {
+            focus_widgets.push_back(focwid);
+        }
+    });
+    m_focus_handler.take_widgets_from(focus_widgets);
+
     check_invarients();
 }
 
-void Frame::reset_register_click_event() {
-    m_click_in_frame = default_click_func;
-    check_invarients();
+void Frame::swap(Frame & lhs) {
+    std::swap(m_padding, lhs.m_padding);
+    std::swap(m_border , lhs.m_border );
 }
 
 /* private */ VectorF Frame::compute_size_to_fit() const {
@@ -313,7 +352,7 @@ void Frame::reset_register_click_event() {
         }
         if (is_line_seperator(widget_ptr)) {
             total_width   = std::max(line_width, total_width);
-            assert(!util::is_nan(total_width));
+            assert(!is_nan(total_width));
             line_width    = 0.f;
             total_height += line_height + m_padding;
             line_height   = 0.f;
@@ -339,13 +378,14 @@ void Frame::reset_register_click_event() {
     if (line_width != 0.f) {
         total_width   = std::max(total_width, line_width);
         total_height += line_height + m_padding;
-        assert(!util::is_nan(total_width));
+        assert(!is_nan(total_width));
     }
-    if (m_title_visible) {
-        total_height += title_height() + m_padding;
-        total_width = std::max(total_width, m_title.width() + m_padding*2.f);
-        assert(!util::is_nan(total_width));
-    }
+    // we want to fit for the title's width and height also
+    // accommodate for the title
+    total_height += (m_border.widget_start() - m_border.location()).y;
+    total_width = std::max(total_width, m_border.title_width_accommodation() + m_padding*2.f);
+    assert(!is_nan(total_width));
+
     if (!m_widgets.empty()) {
         // padding for borders + padding on end
         // during normal iteration we include only one
@@ -368,7 +408,6 @@ void Frame::reset_register_click_event() {
 /* private */ float Frame::get_widget_advance(const Widget * widget_ptr) const {
     bool is_special_widget = is_line_seperator(widget_ptr) ||
                              is_horizontal_spacer(widget_ptr);
-    //bool next_is_special_widget
     return widget_ptr->width() + (is_special_widget ? 0.f : m_padding);
 }
 
@@ -382,16 +421,37 @@ void Frame::reset_register_click_event() {
     }
 }
 
-/* private */ float Frame::title_height() const
-    { return float(m_title.character_size()*2); }
+/* private */ bool Frame::contains(const Widget * wptr) const noexcept {
+    for (const auto * widget : m_widgets) {
+        if (widget == wptr) return true;
+        if (const auto * frame = dynamic_cast<const Frame *>(widget)) {
+            if (frame->contains(wptr)) return true;
+        }
+    }
+    return false;
+}
+
+/* private */ void Frame::iterate_children_(ChildWidgetIterator & itr) {
+    for (auto * widget : m_widgets) {
+        itr.on_child(*widget);
+        widget->iterate_children(itr);
+    }
+}
+
+/* private */ void Frame::iterate_const_children_(ChildWidgetIterator & itr) const {
+    for (const auto * widget : m_widgets) {
+        itr.on_child(*widget);
+        widget->iterate_children(itr);
+    }
+}
 
 /* private */ void Frame::check_invarients() const {
-    assert(!util::is_nan(width ()) && width () >= 0.f);
-    assert(!util::is_nan(height()) && height() >= 0.f);
+    assert(!is_nan(width ()) && width () >= 0.f);
+    assert(!is_nan(height()) && height() >= 0.f);
 }
 
 /* private */ void Frame::update_horizontal_spacers() {
-    const float horz_space_c = m_widget_body.width();
+    const float horz_space_c = m_border.width_available_for_widgets();
     const float start_x_c    = 0.f;
     assert(horz_space_c >= 0.f);
     // horizontal spacers:
@@ -436,32 +496,6 @@ void Frame::reset_register_click_event() {
         (line_begin, m_widgets.end(), std::max(horz_space_c - x, 0.f), m_padding);
 }
 
-/* private */ void Frame::update_drag_position(int drect_x, int drect_y) {
-    set_location(drect_x - m_padding, drect_y - m_padding);
-    update_geometry();
-}
-
-// called by update_geometry
-/* private */ void Frame::update_head_and_back_geometry() {
-    const auto loc = location();
-    auto w = m_back.width();
-    auto h = m_back.height();
-    const float title_bar_height_c =
-        m_title_visible ? title_height() : 0.f;
-    const float title_bar_pad_c = m_title_visible ? m_outer_padding : 0.f;
-    if (m_title_visible) {
-        m_title_bar.set_position(loc.x + m_outer_padding, loc.y + m_outer_padding);
-        m_title_bar.set_size(w - m_outer_padding*2.f, title_bar_height_c);
-        update_title_geometry(loc, m_title_bar, &m_title);
-    }
-    m_widget_body.set_position
-        (loc.x + m_outer_padding,
-         loc.y + title_bar_height_c + m_outer_padding + title_bar_pad_c);
-    m_widget_body.set_size
-        (w - m_outer_padding*2.f,
-         h - (title_bar_height_c + m_outer_padding*2.f + title_bar_pad_c));
-}
-
 /* private */ Frame::WidgetItr Frame::set_horz_spacer_widths
     (WidgetItr beg, WidgetItr end, float left_over_space, float padding)
 {
@@ -489,49 +523,9 @@ void Frame::reset_register_click_event() {
     return end;
 }
 
-// <----------------------- Private types for frame -------------------------->
-// implemenation here, to keep vtable out of every translation unit
-// (revealed by clang static analysis)
-
-// method used as anchor for LineSeperator
-Frame::LineSeperator::~LineSeperator() {}
-
-void Frame::HorizontalSpacer::set_location(float x_, float y_)
-    { m_location = VectorF(x_, y_); }
-
-VectorF Frame::HorizontalSpacer::location() const
-    { return m_location; }
-
-float Frame::HorizontalSpacer::width() const
-    { return m_width; }
-
-void Frame::HorizontalSpacer::set_width(float w) {
-    assert(w >= 0.f);
-    m_width = w;
-}
-
 // ----------------------------------------------------------------------------
 
 // anchor vtable for clang
 SimpleFrame::~SimpleFrame() {}
 
 } // end of ksg namespace
-
-namespace {
-
-void update_title_geometry(VectorF location, const DrawRectangle & title_bar,
-                           Text * title)
-{
-    title->set_limiting_dimensions(title_bar.width(), title_bar.height());
-    VectorF title_offset(
-        (title_bar.width () - title->width ()) / 2.f,
-        (title_bar.height() - title->height()) / 2.f);
-    title->set_location(location + title_offset);
-}
-
-bool mouse_is_in(MouseButtonEvent mouse, const DrawRectangle & drect) {
-    return mouse.x >= drect.x() && mouse.x <= drect.x() + drect.width () &&
-           mouse.y >= drect.y() && mouse.y <= drect.y() + drect.height();
-}
-
-} // end of <anonymous> namespace

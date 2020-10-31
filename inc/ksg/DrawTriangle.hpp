@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: DrawTriangle.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 
 class DrawTriangle final : public sf::Drawable {
 public:
-    static constexpr const auto VERTEX_COUNT = 3u;
+    static constexpr const auto k_vertex_count = 3u;
 
     using VectorF = sf::Vector2f;
 
@@ -68,5 +68,5 @@ public:
 private:
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
-    FixedLengthArray<sf::Vertex, VERTEX_COUNT> m_verticies;
+    FixedLengthArray<sf::Vertex, k_vertex_count> m_verticies;
 };

@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Button.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -21,13 +21,11 @@
 
 #pragma once
 
-#include <SFML/Graphics.hpp>
-
 #include <functional>
 
 #include <common/DrawRectangle.hpp>
 
-#include <ksg/Widget.hpp>
+#include <ksg/FocusWidget.hpp>
 
 namespace ksg {
 
@@ -40,20 +38,18 @@ namespace ksg {
  *  This class uses a non-virtual interface for changes applied to it whether
  *  its size, highlight, deselect ("anti-highlight").
  */
-class Button : public Widget {
+class Button : public FocusWidget {
 public:
     using BlankFunctor = std::function<void()>;
 
     //! background color of button, when mouse hovers over the button
-    static constexpr const char * const HOVER_BACK_COLOR =
-        "button-hover-back";
+    static constexpr const char * const k_hover_back_color = "button-hover-back";
     //! foreground color of button, when mouse hovers over the button
-    static constexpr const char * const HOVER_FRONT_COLOR =
-        "button-hover-front";
+    static constexpr const char * const k_hover_front_color = "button-hover-front";
     //! background color of button
-    static constexpr const char * const REG_BACK_COLOR = "button-back";
+    static constexpr const char * const k_regular_back_color = "button-back";
     //! foreground color of button
-    static constexpr const char * const REG_FRONT_COLOR = "button-front";
+    static constexpr const char * const k_regular_front_color = "button-front";
 
     void set_location(float x, float y) override;
 
@@ -144,6 +140,14 @@ private:
 
     /** Change button aesthetics to denote a selected button. */
     void highlight();
+#   if 0
+    void add_focus_widgets_to(std::vector<FocusWidget *> &) override;
+#   endif
+    void process_focus_event(const sf::Event &) override;
+
+    void notify_focus_gained() override;
+
+    void notify_focus_lost() override;
 
     struct ColorPair {
         ColorPair(){}
@@ -155,9 +159,9 @@ private:
 
     DrawRectangle m_outer;
     DrawRectangle m_inner;
-    float m_padding;
-    bool m_is_highlighted;
-    BlankFunctor m_press_functor;
+    float m_padding = 0.f;
+    bool m_is_highlighted = false;
+    BlankFunctor m_press_functor = [](){};
 
     ColorPair m_reg;
     ColorPair m_hover;

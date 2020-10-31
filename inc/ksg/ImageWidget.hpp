@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ImageWidget.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@
 
 namespace ksg {
 
-class ImageWidget : public Widget {
+class ImageWidget final : public Widget {
 public:
     using TextureMultiType =
         MultiType<const sf::Texture *, std::shared_ptr<const sf::Texture>, sf::Texture>;
@@ -69,10 +69,6 @@ public:
     void set_size(float w, float h);
 
     void set_style(const StyleMap &) override {}
-
-    void accept(Visitor &) override;
-
-    void accept(const Visitor &) const override;
 
 private:
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;

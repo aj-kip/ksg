@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Text.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -49,6 +49,7 @@
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Vertex.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 
 #include <vector>
 #include <string>
@@ -56,10 +57,24 @@
 #include <limits>
 
 #include <common/DrawRectangle.hpp>
+#include <common/MultiType.hpp>
+
+#include <ksg/StyleMap.hpp>
+#include <ksg/DrawCharacter.hpp>
 
 namespace ksg {
 
-class DrawCharacter;
+namespace detail {
+
+using FontMtPtr = MultiType<const sf::Font *, std::shared_ptr<const sf::Font>>;
+
+struct StringAtom {
+
+};
+
+} // end of detail namespace
+
+//class DrawCharacter;
 
 /** The following is a rewrite/extention/retraction of Laurent Gomila's
  *  sf::Text class.
@@ -76,35 +91,28 @@ class DrawCharacter;
 class Text final : public sf::Drawable {
 public:
     using UString = std::u32string;
+    using UChar = UString::value_type;
+    using UStringConstIter = UString::const_iterator;
     using VectorF = sf::Vector2f;
 
-    static constexpr const int MAX_STRING_LEN = std::numeric_limits<int>::max();
+    static constexpr const int k_max_string_length = std::numeric_limits<int>::max();
+    static constexpr const float k_inf = std::numeric_limits<float>::infinity();
 
     struct TextSize {
-        TextSize(): width(0.f), height(0.f) {}
-        float width, height;
+        float width = 0.f, height = 0.f;
     };
 
-    Text();
+    void set_string(const UString & str);
 
-    Text(const Text &);
-    Text(Text &&);
-
-    Text & operator = (const Text &);
-    Text & operator = (Text &&);
-
-    ~Text() override;
-
-    void set_string(const UString & str) {
-        UString temp(str);
-        swap_string(temp);
-    }
-
-    void swap_string(UString & str);
+    void set_string(UString && str);
 
     void set_limiting_width(float w);
 
     void set_limiting_height(float h);
+
+    void enable_bottom_cutting();
+
+    void disable_bottom_cutting();
 
     void set_limiting_dimensions(float w, float h);
 
@@ -114,113 +122,108 @@ public:
 
     void relieve_size_limit();
 
-    void set_character_size(int size);
+    void set_character_size(int);
 
-    void set_color(sf::Color color);
+    void set_color(sf::Color);
 
     void set_location(float x, float y);
 
-    void set_location(VectorF r)
-        { set_location(r.x, r.y); }
+    // this needs to correspond 1:1 to the text's on screen location
+    void set_location(VectorF r);
 
-    void assign_font(const sf::Font * font_ptr);
+    void assign_font(const sf::Font *);
+
+    void assign_font(const std::shared_ptr<const sf::Font> &);
+
+    template <typename KeyType>
+    bool assign_font(const StyleMap &, const KeyType &);
 
     void set_color_for_character(int index, sf::Color clr);
 
     VectorF character_location(int index) const;
 
-    float character_width (int index) const;
+    VectorF location() const;
 
-    float character_height(int index) const;
+    float width() const;
 
-    VectorF location() const
-        { return VectorF(m_bounds.left, m_bounds.top); }
+    float height() const;
 
-    float width() const
-        { return m_bounds.width; }
+    float line_height() const;
 
-    float height() const
-        { return m_bounds.height; }
+    const UString & string() const;
 
-    const UString & string() const
-        { return m_string; }
-
-    bool has_font_assigned() const
-        { return m_font_ptr; }
+    bool has_font_assigned() const;
 
     const sf::Font & assigned_font() const;
 
-    int character_size() const
-        { return m_character_size; }
+    int character_size() const;
 
-    void swap(Text &);
+    TextSize measure_text(const UString &) const;
 
-    TextSize measure_text(const UString &);
+    float measure_width(UStringConstIter beg, UStringConstIter end);
+
+    float maximum_height(UStringConstIter beg, UStringConstIter end);
+
+    bool is_visible() const;
 
     static TextSize measure_text
         (const sf::Font &, unsigned character_size, const UString &);
 
-private:
-    using LineBreakList = std::vector<int>;
-    using VertexContainer = std::vector<sf::Vertex>;
-    using UChar = UString::value_type;
-    using DrawCharacterArray = std::vector<DrawCharacter>;
+    /** Measures text in a single line like fashion.
+     */
+    static TextSize measure_text
+        (const sf::Font &, unsigned character_size, UStringConstIter beg, UStringConstIter end);
 
+    static float measure_width
+        (const sf::Font &, unsigned character_size, UStringConstIter beg, UStringConstIter end);
+
+    static float maximum_height
+        (const sf::Font &, unsigned character_size, UStringConstIter beg, UStringConstIter end);
+
+    static void run_tests();
+private:
     /** SFML draw, draws all verticies of the text.
      *  @param target Target of all draws.
      *  @param states States texture set, used to draw quads.
      */
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
-    /** Computes both Quad sizes as well as texture rectangles.
-     *  @warning Should be called by update_geometry only.
-     */
-    void update_vertex_sizes();
+    const sf::Font * font_ptr() const noexcept;
 
-    /** Sets positions of all Quads, trims/deletes Quads that fall out of
-     *  bounds.
-     *  More labor intensize than set_location, infact DO NOT call this
-     *  function in set_location.
-     *  @warning Should be called by update_geometry only.
-     */
-    void update_vertex_positions();
+    void place_renderables(std::vector<detail::DrawableCharacter> &) const;
 
-    /** Updates all position/sizing of the characters.
-     *  This includes word wrapping and triming (what happens when 'space' runs
-     *  out).
-     */
     void update_geometry();
 
-    /** Trims the given quad if necessary, also updates internal bounds
-     *  information (not to be confused with the bounds maximum width/height).
-     *  @warning Should be called by update_vertex_positions only.
-     *  @param dc The DrawCharacter
-     */
-    void trim_char_quad_and_update_bounds(DrawCharacter & dc);
-
-    bool is_ready_for_geometry_update() const;
-
-    void check_invarients() const;
-
+    using FontMtPtr = detail::FontMtPtr;
+    FontMtPtr m_font_ptr;
     UString m_string;
 
-    DrawCharacterArray * m_draw_characters_uptr;
-    int m_end_visible_char_index;
-
-    // actual text rendering
-
-    const sf::Font * m_font_ptr;
-    int m_character_size;
-    sf::Color m_color;
-
-    // controls line breaks and boundries
-
-    LineBreakList m_breaklist; // both hard and soft breaks
-    float m_width_limit;
-    float m_height_limit;
+    std::vector<detail::DrawableCharacter> m_renderables;
+    // next iterator to the next chunk of text alternating between
+    // breakable and unbreakable
+    std::vector<UString::const_iterator> m_next_chunk;
+    int m_char_size = 0;
     sf::FloatRect m_bounds;
-
-    DrawRectangle m_dbounds;
+    float m_width_constraint = k_inf;
+    float m_height_constraint = k_inf;
+    bool m_allow_bottom_cuts = false;
+    sf::Color m_color;
 };
+
+template <typename KeyType>
+bool Text::assign_font(const StyleMap & map, const KeyType & key_type) {
+    auto itr = map.find(key_type);
+    if (itr == map.end()) return false;
+    auto mt = itr->second;
+    if (mt.template is_type<const sf::Font *>()) {
+        m_font_ptr = FontMtPtr(mt.template as<const sf::Font *>());
+    } else if (mt.template is_type<std::shared_ptr<const sf::Font>>()) {
+        m_font_ptr = FontMtPtr(mt.template as<std::shared_ptr<const sf::Font>>());
+    } else {
+        return false;
+    }
+    update_geometry();
+    return true;
+}
 
 } // end of ksg namespace

@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: ForwardWidgets.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -32,9 +32,5 @@ class OptionsSlider;
 class ProgressBar;
 class TextArea;
 class TextButton;
-
-using BuiltinWidgetTypes =
-    TypeList<ArrowButton, Frame, ImageWidget, OptionsSlider, ProgressBar,
-             TextArea, TextButton>;
 
 } // end of ksg namespace

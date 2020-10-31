@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: Draggable.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -50,6 +50,7 @@ void Draggable::mouse_move(int x, int y) {
 bool Draggable::mouse_click
     (int x, int y, const DrawRectangle & drect)
 {
+    if (!m_watch_drag_events) return false;
     if (is_in_rect(x, y, drect)) {
         m_dragged = true;
         m_drag_offset = sf::Vector2i
@@ -59,8 +60,8 @@ bool Draggable::mouse_click
     return false;
 }
 
-void Draggable::set_position_contraints(sf::IntRect area) {
-    if (area.width == 0 or area.height == 0) {
+void Draggable::set_drag_contraints(sf::IntRect area) {
+    if (area.width == 0 || area.height == 0) {
         throw InvalidArg("Draggable::set_position_contraints: Position "
                          "constraint area may not have a zero sized area.\n"
                          "Consider disabling this drag feature instead (if "
@@ -69,20 +70,20 @@ void Draggable::set_position_contraints(sf::IntRect area) {
     m_position_contraints = area;
 }
 
-void Draggable::remove_position_contraints() {
+void Draggable::remove_drag_contraints() {
     m_position_contraints = sf::IntRect();
 }
 
 /* private */ bool Draggable::has_position_contraints() const {
-    return m_position_contraints.width  != 0 and
+    return m_position_contraints.width  != 0 &&
            m_position_contraints.height != 0;
 }
 
 /* static */ bool Draggable::is_in_rect
     (int x, int y, const DrawRectangle & drect)
 {
-    return (x >= drect.x() and x <= (drect.x() + drect.width() ) and
-            y >= drect.y() and y <= (drect.y() + drect.height())    );
+    return (x >= drect.x() && x <= (drect.x() + drect.width() ) &&
+            y >= drect.y() && y <= (drect.y() + drect.height())   );
 }
 
 } // end of ksg namespace

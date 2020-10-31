@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: TextButton.cpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -21,17 +21,21 @@
 
 #include <ksg/TextButton.hpp>
 #include <ksg/Frame.hpp>
-#include <ksg/Visitor.hpp>
 #include <ksg/TextArea.hpp>
+
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include <cassert>
 
 namespace ksg {
 
+/* static */ constexpr const char * const TextButton::k_text_color;
+/* static */ constexpr const char * const TextButton::k_text_size ;
+
 TextButton::TextButton() {}
 
 void TextButton::swap_string(UString & str) {
-    m_text.swap_string(str);
+    m_text.set_string(std::move(str));
     update_string_position();
 }
 
@@ -41,7 +45,7 @@ void TextButton::set_string(const UString & str) {
 }
 
 void TextButton::set_style(const StyleMap & smap) {
-    set_if_present(m_text, smap, Frame::GLOBAL_FONT, TEXT_SIZE, TEXT_COLOR);
+    set_if_present(m_text, smap, styles::k_global_font, k_text_size, k_text_color);
     Button::set_style(smap);
     update_string_position();
 }
@@ -50,12 +54,6 @@ void TextButton::set_location(float x, float y) {
     Button::set_location(x, y);
     update_string_position();
 }
-
-void TextButton::accept(Visitor & visitor)
-    { visitor.visit(*this); }
-
-void TextButton::accept(const Visitor & visitor) const
-    { visitor.visit(*this); }
 
 void TextButton::issue_auto_resize() {
     if (width() != 0.f || height() != 0.f) return;

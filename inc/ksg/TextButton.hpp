@@ -1,7 +1,7 @@
 /****************************************************************************
 
     File: TextButton.hpp
-    Author: Andrew Janke
+    Author: Aria Janke
     License: GPLv3
 
     This program is free software: you can redistribute it and/or modify
@@ -30,8 +30,8 @@ class TextButton final : public Button {
 public:
     using UString = Text::UString;
 
-    static constexpr const char * const TEXT_COLOR = "text-button-text-color";
-    static constexpr const char * const TEXT_SIZE = "text-button-text-size";
+    static constexpr const char * const k_text_color = "text-button-text-color";
+    static constexpr const char * const k_text_size  = "text-button-text-size";
 
     TextButton();
 
@@ -42,10 +42,6 @@ public:
     void set_style(const StyleMap &) override;
 
     void set_location(float x, float y) override;
-
-    void accept(Visitor &) override;
-
-    void accept(const Visitor &) const override;
 
     void issue_auto_resize() override;
 

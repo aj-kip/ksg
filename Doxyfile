@@ -2019,7 +2019,7 @@ SEARCH_INCLUDES        = YES
 # preprocessor.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
-INCLUDE_PATH           = ./inc ../common/inc 
+INCLUDE_PATH           = ./inc ./lib/cul/inc 
 #/usr/lib/llvm-3.8/lib/clang/3.8.0/include
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
