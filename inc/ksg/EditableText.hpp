@@ -104,13 +104,17 @@ public:
 
     void set_width(float);
 
-    void set_text(const UString &);
+    [[deprecated]] void set_text(const UString &);
+
+    void set_string(const UString &);
 
     void set_cursor_position(int);
 
     int character_count() const;
 
-    const UString & text() const;
+    [[deprecated]] const UString & text() const;
+
+    const UString & string() const;
 
     void set_character_size(int);
 
@@ -130,13 +134,11 @@ private:
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
     bool need_ellipsis() const noexcept
-        { return m_text.measure_text(m_string).width > max_text_width(); }
+        { return m_text.measure_text(m_text.string()).width > max_text_width(); }
 
     void update_geometry();
 
     void update_cursor();
-
-    UString m_string;
 
     Text m_text;
     DrawRectangle m_outer;

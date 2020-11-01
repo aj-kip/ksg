@@ -38,7 +38,6 @@ sf::FloatRect to_rect(const DrawRectangle &);
 
 namespace ksg {
 
-
 namespace detail {
 
 void Ellipsis::set_size(float w, float h) {
@@ -127,17 +126,14 @@ void EditableText::set_location(float x, float y) {
     update_geometry();
 }
 
-VectorF EditableText::location() const {
-    return m_outer.position();
-}
+VectorF EditableText::location() const
+    { return m_outer.position(); }
 
-float EditableText::width() const {
-    return m_outer.width();
-}
+float EditableText::width() const
+    { return m_outer.width(); }
 
-float EditableText::height() const {
-    return m_outer.height();
-}
+float EditableText::height() const
+    { return m_outer.height(); }
 
 void EditableText::set_style(const StyleMap & map) {
     using namespace styles;
@@ -172,7 +168,13 @@ void EditableText::set_width(float w) {
 }
 
 void EditableText::set_text(const UString & str) {
-    m_string = str;
+    m_text.set_string(str);
+    update_geometry();
+}
+
+void EditableText::set_string(const UString & ustr) {
+    m_text.set_string(ustr);
+    update_geometry();
 }
 
 void EditableText::set_cursor_position(int) {
@@ -183,7 +185,10 @@ int EditableText::character_count() const
     { return m_text.character_size(); }
 
 const UString & EditableText::text() const
-    { return m_string; }
+    { return m_text.string(); }
+
+const UString & EditableText::string() const
+    { return m_text.string(); }
 
 void EditableText::set_character_size(int size)
     { m_text.set_character_size(size); }
@@ -203,13 +208,12 @@ void EditableText::process_focus_event(const sf::Event & event) {
 
         bool needed_ellipsis = need_ellipsis();
         UString new_string;
-        new_string.reserve(1 + m_string.size());
-        new_string = m_string;
+        new_string.reserve(1 + m_text.string().size());
+        new_string = m_text.string();
         new_string.push_back(event.text.unicode);
 
         if (m_filter_func(new_string)) {
-            m_string = new_string;
-            m_text.set_string(m_string);
+            m_text.set_string(new_string);
             update_cursor();
             if (need_ellipsis() != needed_ellipsis) {
                 update_geometry();
@@ -218,26 +222,21 @@ void EditableText::process_focus_event(const sf::Event & event) {
         }
     }
     if (event.type == sf::Event::KeyPressed) {
-        if (event.key.code == sf::Keyboard::BackSpace && !m_string.empty()) {
-            m_string.pop_back();
-            m_text.set_string(m_string);
+        if (event.key.code == sf::Keyboard::BackSpace && !m_text.string().empty()) {
+            auto new_string = m_text.string();
+            new_string.pop_back();
+            m_text.set_string(new_string);
             update_cursor();
         }
     }
 }
 
-void EditableText::notify_focus_gained() {
-    m_outer.set_color(m_focus_color);
-}
+void EditableText::notify_focus_gained()
+    { m_outer.set_color(m_focus_color); }
 
-void EditableText::notify_focus_lost() {
-    m_outer.set_color(m_reg_color);
-}
-#if 0
-void EditableText::add_focus_widgets_to(std::vector<FocusWidget *> & cont) {
-    cont.push_back(this);
-}
-#endif
+void EditableText::notify_focus_lost()
+    { m_outer.set_color(m_reg_color); }
+
 /* private */ void EditableText::draw
     (sf::RenderTarget & target, sf::RenderStates states) const
 {
@@ -271,7 +270,7 @@ void EditableText::add_focus_widgets_to(std::vector<FocusWidget *> & cont) {
 }
 
 /* private */ void EditableText::update_cursor() {
-    m_cursor.set_position(m_text.character_location(m_string.size()));
+    m_cursor.set_position(m_text.character_location(m_text.string().size()));
     m_cursor.set_size    (m_text.line_height() / 3.f, m_text.line_height());
     m_cursor.set_color   (sf::Color::Black);
 }

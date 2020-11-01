@@ -43,7 +43,7 @@ SOURCES += \
     ../src/TextButton.cpp    \
     ../src/Frame.cpp         \
     ../src/SelectionMenu.cpp \
-    ../demos/demo.cpp
+    ../demos/editable_text.cpp
 
 HEADERS += \
     \ # private headers

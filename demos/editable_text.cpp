@@ -71,6 +71,11 @@ int main() {
 
 namespace {
 
+using UString = ksg::Text::UString;
+
+template <typename T>
+UString shorten(UString &&, T error);
+
 void EditableTextFrame::setup_frame() {
     m_option_text.set_string(U"none selected");
 
@@ -90,6 +95,7 @@ void EditableTextFrame::setup_frame() {
 
     m_num_only_notice.set_string(U"Note: this text box only accepts numbers.");
     m_num_only_et.set_width(150.f);
+    m_num_only_et.set_string(shorten(U"0.50000", 0.05));
     m_num_only_et.set_character_filter([](const UString & ustr) {
         int num = 0;
         return string_to_number(ustr, num);
@@ -107,6 +113,27 @@ void EditableTextFrame::setup_frame() {
         add(m_num_only_et).add_line_seperator().
         add(m_num_only_notice).add_line_seperator().
         add(m_exit_button);
+}
+
+// ----------------------------------------------------------------------------
+
+template <typename T>
+UString shorten(UString && ustr, T error) {
+    T last_out = T(0);
+    if (!string_to_number(ustr, last_out)) {
+        throw std::invalid_argument("base input is not numeric");
+    }
+    T out = last_out;
+    auto end = ustr.end();
+    while (true) {
+        auto mid = ustr.begin() + ((end - ustr.begin()) / 2);
+        string_to_number(ustr.begin(), mid, out);
+        if (magnitude(out - last_out) > error) {
+            ustr.erase(end, ustr.end());
+            return std::move(ustr);
+        }
+        end = mid;
+    }
 }
 
 } // end of <anonymous> namespace
