@@ -179,34 +179,42 @@ void EditableText::set_cursor_position(int) {
 
 }
 
-int EditableText::character_count() const {
-    return m_text.character_size();
-}
+int EditableText::character_count() const
+    { return m_text.character_size(); }
 
-const UString & EditableText::text() const {
-    return m_string;
-}
+const UString & EditableText::text() const
+    { return m_string; }
 
-void EditableText::set_character_size(int size) {
-    m_text.set_character_size(size);
-}
+void EditableText::set_character_size(int size)
+    { m_text.set_character_size(size); }
 
-float EditableText::max_text_width() const {
-    return width() - m_padding*2.f - m_inner_padding*2.f;
-}
+void EditableText::set_character_filter(CharFilterFunc && f)
+    { m_filter_func = std::move(f); }
+
+void EditableText::set_text_change_event(BlankFunc && f)
+    { m_change_text_func = std::move(f); }
+
+float EditableText::max_text_width() const
+    { return width() - m_padding*2.f - m_inner_padding*2.f; }
 
 void EditableText::process_focus_event(const sf::Event & event) {
     if (event.type == sf::Event::TextEntered) {
         if (event.text.unicode < 10) return;
 
         bool needed_ellipsis = need_ellipsis();
-        m_string.push_back(event.text.unicode);
-        m_text.set_string(m_string);
-        update_cursor();
-        if (need_ellipsis() != needed_ellipsis) {
-            update_geometry();
-            int j = 0;
-            ++j;
+        UString new_string;
+        new_string.reserve(1 + m_string.size());
+        new_string = m_string;
+        new_string.push_back(event.text.unicode);
+
+        if (m_filter_func(new_string)) {
+            m_string = new_string;
+            m_text.set_string(m_string);
+            update_cursor();
+            if (need_ellipsis() != needed_ellipsis) {
+                update_geometry();
+            }
+            m_change_text_func();
         }
     }
     if (event.type == sf::Event::KeyPressed) {

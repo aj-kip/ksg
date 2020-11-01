@@ -57,9 +57,13 @@ public:
 
     // <----------------------------- TextWidget ----------------------------->
 
-    void set_text(const UString & str);
+    [[deprecated]] void set_text(const UString & str);
 
-    const UString & text() const { return m_draw_text.string(); }
+    [[deprecated]] const UString & text() const { return m_draw_text.string(); }
+
+    void set_string(const UString & str);
+
+    const UString & string() const { return m_draw_text.string(); }
 
     void set_color_for_index(int index, sf::Color c)
         { m_draw_text.set_color_for_character(index, c); }

@@ -190,15 +190,20 @@ void OptionsSlider::set_option_change_event(BlankFunctor && func) {
 }
 
 /* private */ void OptionsSlider::issue_auto_resize() {
-    if (width() != 0.f || height() != 0.f) return;
-    float width_ = 0.f, height_ = 0.f;
+    if (width() != 0.f || height() != 0.f || !m_text.has_font_assigned()) return;
+    float width_ = 0.f;
+#   if 0
+    float height_ = 0.f;
+#   endif
     for (const auto & str : m_options) {
         auto gv = m_text.measure_text(str);
         width_  = std::max(width_ , gv.width );
+#       if 0
         height_ = std::max(height_, gv.height);
+#       endif
     }
 
-    height_ += 2.f*m_padding;
+    float height_ = m_text.line_height() + 2.f*m_padding;
     auto arrow_size = size_for_arrows(width_, height_);
     width_  += 2.f*(m_padding + arrow_size);
 

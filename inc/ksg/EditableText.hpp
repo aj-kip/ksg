@@ -72,8 +72,11 @@ private:
  */
 class EditableText final : public FocusWidget {
 public:
-    using Ellipsis = detail::Ellipsis;
-    using UString = Text::UString;
+    using Ellipsis       = detail::Ellipsis;
+    using UString        = Text::UString;
+    using CharFilterFunc = std::function<bool(const UString &)>;
+    using BlankFunc      = std::function<void()>;
+
     // always uses frame's border color, text font, padding
     static constexpr const char * const k_background_color    = "editable-text-background";
     static constexpr const char * const k_ellipsis_back_color = "editable-text-ellipsis-background";
@@ -111,6 +114,10 @@ public:
 
     void set_character_size(int);
 
+    void set_character_filter(CharFilterFunc &&);
+
+    void set_text_change_event(BlankFunc &&);
+
 private:
     float max_text_width() const;
 
@@ -119,9 +126,7 @@ private:
     void notify_focus_gained() override;
 
     void notify_focus_lost() override;
-#   if 0
-    void add_focus_widgets_to(std::vector<FocusWidget *> &) override;
-#   endif
+
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
     bool need_ellipsis() const noexcept
@@ -145,6 +150,9 @@ private:
     float m_inner_padding = 2.f;
 
     Ellipsis m_ellipsis;
+
+    CharFilterFunc m_filter_func = [](const UString &) { return true; };
+    BlankFunc m_change_text_func = [](){};
 };
 
 } // end of ksg namespace

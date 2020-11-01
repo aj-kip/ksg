@@ -106,10 +106,10 @@ void DemoText::setup_frame() {
     // this may result in a segmentation fault, and is undefined behavior
     m_text_button.set_press_event([this]() { m_close_flag = true; });
 
-    m_text_area.set_text(U"Hello World");
+    m_text_area.set_string(U"Hello World");
     m_text_area.set_width(200.f);
 
-    m_text_area.set_text(U"Hello World.\n"
+    m_text_area.set_string(U"Hello World.\n"
         "Images of fruit were graciously "
         "provided by \"freefoodphotos.com\" "
         "each of which are released under "

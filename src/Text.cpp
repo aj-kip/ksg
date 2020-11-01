@@ -194,6 +194,10 @@ bool Text::has_font_assigned() const
     { return font_ptr(); }
 
 const sf::Font & Text::assigned_font() const {
+    if (!font_ptr()) {
+        throw std::runtime_error(
+            "Text::assigned_font: cannot access font, no font has been assigned.");
+    }
     return *font_ptr();
 }
 

@@ -72,11 +72,15 @@ void TextArea::set_style(const StyleMap & smap) {
 }
 
 void TextArea::issue_auto_resize() {
-    //m_draw_text.relieve_size_limit();
     recompute_geometry();
 }
 
 void TextArea::set_text(const UString & str) {
+    m_draw_text.set_string(str);
+    recompute_geometry();
+}
+
+void TextArea::set_string(const UString & str) {
     m_draw_text.set_string(str);
     recompute_geometry();
 }
