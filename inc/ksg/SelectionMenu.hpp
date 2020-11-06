@@ -36,10 +36,11 @@ struct SelectionEntryReciever {
 
 class SelectionEntry final : public FocusWidget {
 public:
+    static constexpr const float k_default_padding = 2.f;
     using UString = Text::UString;
-
+#   if 0
     SelectionEntry();
-
+#   endif
     void assign_parent(SelectionEntryReciever &, std::size_t menu_idx);
 
     void set_string(const UString &);
@@ -80,13 +81,17 @@ private:
 
     void recenter_text();
 
+    float padding() const noexcept;
+
     Text m_display_text;
-    float m_padding = 2.f;
+    float m_padding = styles::get_unset_value<float>();
     DrawRectangle m_background;
 
     SelectionEntryReciever * m_parent = nullptr;
     std::size_t m_menu_idx = 0;
-    sf::Color m_max_highlight, m_reg_highlight, m_no_highlight;
+    sf::Color m_max_highlight = styles::get_unset_value<sf::Color>();
+    sf::Color m_reg_highlight = styles::get_unset_value<sf::Color>();
+    sf::Color m_no_highlight  = styles::get_unset_value<sf::Color>();
     bool m_mouse_is_over = false;
 };
 

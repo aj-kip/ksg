@@ -190,7 +190,9 @@ void Frame::process_event(const sf::Event & event) {
 
 void Frame::set_style(const StyleMap & smap) {
     m_border.set_style(smap);
-    styles::set_if_found(smap, styles::k_global_padding, m_padding);
+    if (!styles::set_if_found(smap, styles::k_global_padding, m_padding)) {
+        m_padding = k_default_padding;
+    }
 
     for (Widget * widget_ptr : m_widgets)
         widget_ptr->set_style(smap);
@@ -249,9 +251,11 @@ void Frame::finalize_widgets(std::vector<Widget *> && widgets,
     check_invarients();
 }
 
-void Frame::set_padding(float pixels) {
-    m_padding = pixels;
-}
+void Frame::set_padding(float pixels)
+    { m_padding = pixels; }
+
+void Frame::set_frame_border_size(float pixels)
+    { m_border.set_border_size(pixels); }
 
 void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
     if (!is_visible()) return;

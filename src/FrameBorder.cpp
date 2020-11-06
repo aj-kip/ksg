@@ -77,9 +77,9 @@ void HorizontalSpacer::set_width(float w) {
 /* static */ constexpr const float FrameBorder::k_default_padding;
 
 VectorF FrameBorder::widget_start() const noexcept {
-    VectorF offset(m_outer_padding, m_outer_padding + title_height());
+    VectorF offset(outer_padding(), outer_padding() + title_height());
     if (!m_title.string().empty()) {
-        offset.y += m_outer_padding;
+        offset.y += outer_padding();
     }
     return location() + offset;
 }
@@ -117,7 +117,25 @@ void FrameBorder::set_style(const StyleMap & smap) {
     using namespace styles;
     set_if_present(m_title, smap, k_global_font, Frame::k_title_size,
                    Frame::k_title_color);
-
+    set_if_color_found(smap, Frame::k_background_color, m_back);
+    set_if_color_found(smap, Frame::k_title_bar_color, m_title_bar);
+    set_if_color_found(smap, Frame::k_widget_body_color, m_widget_body);
+    if (set_if_found(smap, Frame::k_border_size, m_outer_padding))
+        {}
+    else if (set_if_found(smap, k_global_padding, m_outer_padding))
+        {}
+    else if (std::equal_to<float>()(m_outer_padding, get_unset_value<float>())) {
+        m_outer_padding = k_default_padding;
+    }
+#   if 0
+    if (!set_if_found(smap, Frame::k_border_size, m_outer_padding)) {
+        if (!set_if_found(smap, k_global_padding, m_outer_padding)) {
+            if (std::equal_to<float>()(m_outer_padding, get_unset_value<float>()))
+                m_outer_padding = k_default_padding;
+        }
+    }
+#   endif
+#   if 0
     if (auto * color = find<sf::Color>(smap, Frame::k_background_color))
         m_back.set_color(*color);
     if (auto * color = find<sf::Color>(smap, Frame::k_title_bar_color))
@@ -129,6 +147,7 @@ void FrameBorder::set_style(const StyleMap & smap) {
     } else if (auto * pad = find<float>(smap, k_global_padding)) {
         m_outer_padding = *pad;
     }
+#   endif
 }
 
 void FrameBorder::set_size(float w, float h)
@@ -151,18 +170,18 @@ void FrameBorder::update_geometry() {
     auto w = m_back.width();
     auto h = m_back.height();
     const float c_title_bar_height = title_height();
-    const float c_title_bar_pad = m_title.is_visible() ? m_outer_padding : 0.f;
+    const float c_title_bar_pad = m_title.is_visible() ? outer_padding() : 0.f;
     if (m_title.is_visible()) {
-        m_title_bar.set_position(loc.x + m_outer_padding, loc.y + m_outer_padding);
-        m_title_bar.set_size(w - m_outer_padding*2.f, c_title_bar_height);
+        m_title_bar.set_position(loc.x + outer_padding(), loc.y + outer_padding());
+        m_title_bar.set_size(w - outer_padding()*2.f, c_title_bar_height);
         update_title_geometry(loc, m_title_bar, &m_title);
     }
     m_widget_body.set_position
-        (loc.x + m_outer_padding,
-         loc.y + c_title_bar_height + m_outer_padding + c_title_bar_pad);
+        (loc.x + outer_padding(),
+         loc.y + c_title_bar_height + outer_padding() + c_title_bar_pad);
     m_widget_body.set_size
-        (w - m_outer_padding*2.f,
-         h - (c_title_bar_height + m_outer_padding*2.f + c_title_bar_pad));
+        (w - outer_padding()*2.f,
+         h - (c_title_bar_height + outer_padding()*2.f + c_title_bar_pad));
 }
 
 float FrameBorder::title_width_accommodation() const noexcept
@@ -170,6 +189,15 @@ float FrameBorder::title_width_accommodation() const noexcept
 
 float FrameBorder::width_available_for_widgets() const noexcept
     { return m_widget_body.width(); }
+
+void FrameBorder::set_border_size(float pixels) {
+    if (pixels < 0.f) {
+        throw std::invalid_argument(
+            "FrameBorder::set_border_size: border size must be a "
+            "non-negative real number.");
+    }
+    m_outer_padding = pixels;
+}
 
 /* private */ void FrameBorder::update_drag_position
     (int drect_x, int drect_y)
@@ -215,6 +243,9 @@ float FrameBorder::width_available_for_widgets() const noexcept
 /* private static */ FrameBorder::ClickResponse
     FrameBorder::do_default_click_event()
     { return k_continue_other_events; }
+
+/* private */ float FrameBorder::outer_padding() const noexcept
+    { return std::max(0.f, m_outer_padding); }
 
 } // end of ksg namespace
 

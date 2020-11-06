@@ -39,8 +39,6 @@ using VectorF = ksg::Widget::VectorF;
 /* static */ constexpr const char * const ProgressBar::k_inner_back_color ;
 /* static */ constexpr const char * const ProgressBar::k_padding          ;
 
-ProgressBar::ProgressBar(): m_fill_amount(0.f), m_padding(0.f) {}
-
 void ProgressBar::process_event(const sf::Event &) {}
 
 void ProgressBar::set_location(float x, float y) {
@@ -63,9 +61,12 @@ float ProgressBar::height() const
     { return m_outer.height(); }
 
 void ProgressBar::set_style(const StyleMap & smap) {
+#   if 0
     if (auto * pad = styles::find<float>(smap, k_padding)) {
         m_padding = *pad;
     }
+#   endif
+    styles::set_if_found(smap, k_padding, m_padding);
 
     // it is 2020, it is time to use c++17
     for (auto [key, drect] : {
@@ -73,9 +74,12 @@ void ProgressBar::set_style(const StyleMap & smap) {
          std::make_pair(k_inner_front_color, &m_inner_front),
          std::make_pair(k_inner_back_color , &m_inner_back )
      }) {
+        styles::set_if_color_found(smap, key, *drect);
+#       if 0
         if (auto * color = styles::find<sf::Color>(smap, key)) {
             drect->set_color(*color);
         }
+#       endif
     }
 
     update_positions_using_outer();
@@ -116,10 +120,10 @@ void ProgressBar::set_padding(float p) {
 
 /* private */ float ProgressBar::active_padding() const {
     float padding;
-    if (width() < m_padding or height() < m_padding)
+    if (width() < m_padding || height() < m_padding)
         padding = 0.f;
     else
-        padding = m_padding;
+        padding = std::max(0.f, m_padding);
     return padding;
 }
 

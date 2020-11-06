@@ -43,13 +43,13 @@ namespace ksg {
 SelectionEntryReciever::~SelectionEntryReciever() {}
 
 // ----------------------------------------------------------------------------
-
+#if 0
 SelectionEntry::SelectionEntry():
     m_max_highlight(k_default_max_highlight),
     m_reg_highlight(k_regular_highlight),
     m_no_highlight(k_no_highlight)
 {}
-
+#endif
 void SelectionEntry::assign_parent(SelectionEntryReciever & parent, std::size_t menu_idx) {
     m_parent   = &parent;
     m_menu_idx = menu_idx;
@@ -66,25 +66,25 @@ void SelectionEntry::set_string(UString && ustr) {
 }
 
 void SelectionEntry::set_location(float x, float y) {
-    m_background.set_position(x + m_padding, y + m_padding);
+    m_background.set_position(x + padding(), y + padding());
     recenter_text();
 }
 
 VectorF SelectionEntry::location() const {
-    return m_background.position() - VectorF(m_padding, m_padding);
+    return m_background.position() - padding()*VectorF(1.f, 1.f);
 }
 
 float SelectionEntry::width() const {
-    return m_background.width() + m_padding*2.f;
+    return m_background.width() + padding()*2.f;
 }
 
 float SelectionEntry::height() const {
-    return m_background.height() + m_padding*2.f;
+    return m_background.height() + padding()*2.f;
 }
 
 void SelectionEntry::set_size(float width, float height) {
     if (width == 0.f || height == 0.f) return;
-    m_background.set_size(width - m_padding*2.f, height - m_padding*2.f);
+    m_background.set_size(width - padding()*2.f, height - padding()*2.f);
     m_display_text.set_limiting_dimensions(width, height);
     recenter_text();
 }
@@ -93,8 +93,20 @@ const UString & SelectionEntry::string() const
     { return m_display_text.string(); }
 
 void SelectionEntry::set_style(const StyleMap & styles) {
+
     using SelMenu = SelectionMenu;
     m_display_text.assign_font(styles, styles::k_global_font);
+    if (auto * color = styles::find<sf::Color>(styles, TextArea::k_text_color)) {
+        m_display_text.set_color(*color);
+    } else {
+        m_display_text.set_color(sf::Color::White);
+    }
+    styles::set_if_numeric_found(styles, TextArea::k_text_size, m_display_text);
+    styles::set_if_found(styles, SelMenu::k_max_highlight, m_max_highlight);
+    styles::set_if_found(styles, SelMenu::k_regular_highlight, m_reg_highlight);
+    styles::set_if_found(styles, SelMenu::k_no_highlight, m_no_highlight);
+    m_padding = 2.f;
+#   if 0
     if (auto * color = styles::find<sf::Color>(styles, TextArea::k_text_color)) {
         m_display_text.set_color(*color);
     }
@@ -110,14 +122,15 @@ void SelectionEntry::set_style(const StyleMap & styles) {
     if (auto * color = styles::find<sf::Color>(styles, SelMenu::k_no_highlight)) {
         m_no_highlight = *color;
     }
+#   endif
     m_background.set_color(m_no_highlight);
 }
 
 float SelectionEntry::content_width() const
-    { return m_display_text.width() + m_padding*2.f; }
+    { return m_display_text.width() + padding()*2.f; }
 
 float SelectionEntry::content_height() const
-    { return m_display_text.height() + m_padding*2.f; }
+    { return m_display_text.height() + padding()*2.f; }
 
 /* private */ void SelectionEntry::process_event(const sf::Event & event) {
     if (!m_parent) {
@@ -184,6 +197,9 @@ float SelectionEntry::content_height() const
         m_background.x() + (m_background.width () - m_display_text.width ())*0.5f,
         m_background.y() + (m_background.height() - m_display_text.height())*0.5f);
 }
+
+/* private */ float SelectionEntry::padding() const noexcept
+    { return std::max(0.f, m_padding); }
 
 // ----------------------------------------------------------------------------
 

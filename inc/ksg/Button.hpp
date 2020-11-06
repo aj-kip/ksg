@@ -87,6 +87,15 @@ public:
      */
     void press();
 
+    /** @brief Sets button's styles.
+     *
+     *  Sets the following styles:
+     *  - hover background color
+     *  - hover foreground color
+     *  - regular background color
+     *  - regular foreground color
+     *  @note when overriding, please don't forget to make this call
+     */
     void set_style(const StyleMap &) override;
 
 protected:
@@ -134,15 +143,13 @@ protected:
      */
     void set_button_frame_size(float width, float height);
 
-private:
     /** Change button aesthetics to denote a deselected button. */
     void deselect();
 
     /** Change button aesthetics to denote a selected button. */
     void highlight();
-#   if 0
-    void add_focus_widgets_to(std::vector<FocusWidget *> &) override;
-#   endif
+
+private:
     void process_focus_event(const sf::Event &) override;
 
     void notify_focus_gained() override;
@@ -153,13 +160,14 @@ private:
         ColorPair(){}
         ColorPair(sf::Color b_, sf::Color f_): back(b_), front(f_) {}
 
-        sf::Color back;
-        sf::Color front;
+        sf::Color back  = styles::get_unset_value<sf::Color>();
+        sf::Color front = styles::get_unset_value<sf::Color>();
     };
 
+    // strangley ok for default color value
     DrawRectangle m_outer;
     DrawRectangle m_inner;
-    float m_padding = 0.f;
+    float m_padding = styles::get_unset_value<float>();
     bool m_is_highlighted = false;
     BlankFunctor m_press_functor = [](){};
 

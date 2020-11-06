@@ -34,8 +34,6 @@ public:
     static constexpr const char * const k_inner_back_color  = "progress-bar-inner-back-color";
     static constexpr const char * const k_padding           = "progress-bar-padding";
 
-    ProgressBar();
-
     void process_event(const sf::Event &) override;
 
     void set_location(float x, float y) override;
@@ -75,11 +73,12 @@ private:
 
     void update_sizes_using_outer();
 
-    DrawRectangle m_outer;
-    DrawRectangle m_inner_front;
-    DrawRectangle m_inner_back;
-    float m_fill_amount;
-    float m_padding;
+    DrawRectangle m_outer       = styles::make_rect_with_unset_color();
+    DrawRectangle m_inner_front = styles::make_rect_with_unset_color();
+    DrawRectangle m_inner_back  = styles::make_rect_with_unset_color();
+
+    float m_fill_amount = 0.f;
+    float m_padding = styles::get_unset_value<float>();
 };
 
 } // end of ksg namespace

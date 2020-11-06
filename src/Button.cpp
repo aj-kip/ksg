@@ -39,15 +39,12 @@ bool is_in_drect(int x, int y, const DrawRectangle & drect) {
 
 bool is_click_in(const sf::Event::MouseButtonEvent & mouse,
               const DrawRectangle & drect)
-{
-    return is_in_drect(mouse.x, mouse.y, drect);
-}
+{ return is_in_drect(mouse.x, mouse.y, drect); }
 
 bool is_mouse_in(const sf::Event::MouseMoveEvent & mouse,
               const DrawRectangle & drect)
-{
-    return is_in_drect(mouse.x, mouse.y, drect);
-}
+{ return is_in_drect(mouse.x, mouse.y, drect); }
+
 } // end of <anonymous> namespace
 
 namespace ksg {
@@ -81,7 +78,7 @@ void Button::process_event(const sf::Event & evnt) {
 void Button::set_location(float x, float y) {
     float old_x = location().x, old_y = location().y;
     m_outer.set_position(x, y);
-    m_inner.set_position(x + m_padding, y + m_padding);
+    m_inner.set_position(x + std::max(m_padding, 0.f), y + std::max(m_padding, 0.f));
 
     set_button_frame_size(width(), height());
     on_location_changed(old_x, old_y);
@@ -94,7 +91,7 @@ void Button::set_style(const StyleMap & smap) {
     set_if_found(smap, k_hover_front_color    , m_hover.front);
     set_if_found(smap, k_regular_back_color   , m_reg.back   );
     set_if_found(smap, k_regular_front_color  , m_reg.front  );
-    set_if_found(smap, k_global_padding, m_padding    );
+    set_if_found(smap, k_global_padding       , m_padding    );
 
     m_outer.set_color(m_reg.back);
     m_inner.set_color(m_reg.front);
@@ -146,7 +143,7 @@ void Button::set_size(float width_, float height_) {
                      std::max(height_ - m_padding*2.f, 0.f));
 }
 
-/* private */ void Button::deselect() {
+/* protected */ void Button::deselect() {
     m_is_highlighted = false;
     m_inner.set_color(m_reg.front);
     if (has_focus()) {
@@ -156,7 +153,7 @@ void Button::set_size(float width_, float height_) {
     }
 }
 
-/* private */ void Button::highlight() {
+/* protected */ void Button::highlight() {
     m_is_highlighted = true;
     m_inner.set_color(m_hover.front);
     if (has_focus()) {
@@ -165,13 +162,7 @@ void Button::set_size(float width_, float height_) {
         m_outer.set_color(m_hover.back);
     }
 }
-#if 0
-/* private */ void Button::add_focus_widgets_to
-    (std::vector<FocusWidget *> & cont)
-{
-    cont.push_back(this);
-}
-#endif
+
 /* private */ void Button::process_focus_event(const sf::Event & event) {
     if (event.type == sf::Event::KeyReleased) {
         if (event.key.code == sf::Keyboard::Return) {

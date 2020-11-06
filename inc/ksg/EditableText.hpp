@@ -133,23 +133,29 @@ private:
 
     void draw(sf::RenderTarget & target, sf::RenderStates states) const override;
 
-    bool need_ellipsis() const noexcept
-        { return m_text.measure_text(m_text.string()).width > max_text_width(); }
+    bool need_ellipsis() const noexcept {
+        if (!m_text.has_font_assigned()) return false;
+        return m_text.measure_text(m_text.string()).width > max_text_width();
+    }
 
     void update_geometry();
 
     void update_cursor();
 
+    float padding() const noexcept;
+
+    float inner_padding() const noexcept;
+
     Text m_text;
-    DrawRectangle m_outer;
-    DrawRectangle m_inner;
+    DrawRectangle m_outer = styles::make_rect_with_unset_color();
+    DrawRectangle m_inner = styles::make_rect_with_unset_color();
     DrawRectangle m_cursor;
 
-    sf::Color m_focus_color;
-    sf::Color m_reg_color;
+    sf::Color m_focus_color = styles::get_unset_value<sf::Color>();
+    sf::Color m_reg_color   = styles::get_unset_value<sf::Color>();
 
-    float m_padding = 0.f;
-    float m_inner_padding = 2.f;
+    float m_padding       = styles::get_unset_value<float>();
+    float m_inner_padding = styles::get_unset_value<float>();
 
     Ellipsis m_ellipsis;
 

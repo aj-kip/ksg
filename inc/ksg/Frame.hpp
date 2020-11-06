@@ -256,6 +256,8 @@ public:
 
     void set_padding(float pixels);
 
+    void set_frame_border_size(float pixels);
+
     void swap(Frame &);
 
 protected:
@@ -306,7 +308,7 @@ private:
     void check_invarients() const;
 
     std::vector<Widget *> m_widgets;
-    float m_padding = k_default_padding;
+    float m_padding = styles::get_unset_value<float>();
     // anything related to the frame's border
 
     //! unique per instance

@@ -226,17 +226,19 @@ bool Text::is_visible() const {
 }
 
 /* static */ TextSize Text::measure_text
-    (const sf::Font & font, unsigned character_size,
+    (const sf::Font & font, int character_size,
      UStringConstIter beg, UStringConstIter end)
 {
+    if (character_size < 1) return TextSize();
     return TextSize { measure_width(font, character_size, beg, end),
                       font.getLineSpacing(character_size) };
 }
 
 /* static */ float Text::measure_width
-    (const sf::Font & font, unsigned character_size,
+    (const sf::Font & font, int character_size,
      UStringConstIter beg, UStringConstIter end)
 {
+    if (character_size < 1) return 0.f;
     assert(beg <= end);
     float w = 0.f;
     for (auto itr = beg; itr != end; ++itr) {
@@ -250,9 +252,10 @@ bool Text::is_visible() const {
 }
 
 /* static */ float Text::maximum_height
-    (const sf::Font & font, unsigned character_size,
+    (const sf::Font & font, int character_size,
      UStringConstIter beg, UStringConstIter end)
 {
+    if (character_size < 1) return 0.f;
     float h = 0.f;
     for (auto itr = beg; itr != end; ++itr) {
         h = std::max(h, font.getGlyph(*itr, character_size, false).bounds.height);
@@ -310,7 +313,7 @@ bool Text::is_visible() const {
 }
 
 void Text::update_geometry() {
-    if (!has_font_assigned() || m_char_size == 0 ||
+    if (!has_font_assigned() || m_char_size < 1 ||
         (m_string.empty() && m_renderables.empty()))
     { return; }
 

@@ -38,10 +38,16 @@ void set_if_present(Text & text, const StyleMap & smap, const char * font_field,
 {
     using namespace styles;
     text.assign_font(smap, font_field);
+
     if (auto * color = find<sf::Color>(smap, text_color))
         text.set_color(*color);
-    if (auto * char_size = find<float>(smap, char_size_field))
-        text.set_character_size(int(std::round(*char_size)));
+    else
+        text.set_color(sf::Color::White);
+
+    if (auto * char_size = find<float>(smap, char_size_field)) {
+        if (get_unset_value<int>() == text.character_size())
+            text.set_character_size(int(std::round(*char_size)));
+    }
 }
 
 // ----------------------------------------------------------------------------

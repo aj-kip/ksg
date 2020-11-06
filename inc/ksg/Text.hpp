@@ -68,13 +68,7 @@ namespace detail {
 
 using FontMtPtr = MultiType<const sf::Font *, std::shared_ptr<const sf::Font>>;
 
-struct StringAtom {
-
-};
-
 } // end of detail namespace
-
-//class DrawCharacter;
 
 /** The following is a rewrite/extention/retraction of Laurent Gomila's
  *  sf::Text class.
@@ -156,6 +150,9 @@ public:
 
     const sf::Font & assigned_font() const;
 
+    /** @returns get_unset_value<int>() if character size is not yet set since
+     *           object's creation.
+     */
     int character_size() const;
 
     TextSize measure_text(const UString &) const;
@@ -170,15 +167,18 @@ public:
         (const sf::Font &, unsigned character_size, const UString &);
 
     /** Measures text in a single line like fashion.
+     *  @param character_size a value less than 1 indicates a zero sized font
+     *         and therefore will cause this function to always return a zerod
+     *         size object { 0.f, 0.f }
      */
     static TextSize measure_text
-        (const sf::Font &, unsigned character_size, UStringConstIter beg, UStringConstIter end);
+        (const sf::Font &, int character_size, UStringConstIter beg, UStringConstIter end);
 
     static float measure_width
-        (const sf::Font &, unsigned character_size, UStringConstIter beg, UStringConstIter end);
+        (const sf::Font &, int character_size, UStringConstIter beg, UStringConstIter end);
 
     static float maximum_height
-        (const sf::Font &, unsigned character_size, UStringConstIter beg, UStringConstIter end);
+        (const sf::Font &, int character_size, UStringConstIter beg, UStringConstIter end);
 
     static void run_tests();
 private:
@@ -202,7 +202,7 @@ private:
     // next iterator to the next chunk of text alternating between
     // breakable and unbreakable
     std::vector<UString::const_iterator> m_next_chunk;
-    int m_char_size = 0;
+    int m_char_size = styles::get_unset_value<int>();
     sf::FloatRect m_bounds;
     float m_width_constraint = k_inf;
     float m_height_constraint = k_inf;

@@ -137,6 +137,17 @@ float EditableText::height() const
 
 void EditableText::set_style(const StyleMap & map) {
     using namespace styles;
+    if (!set_if_color_found(map, k_background_color, m_inner)) {
+        m_inner.set_color(sf::Color::White);
+    }
+    set_if_color_found(map, Button::k_regular_back_color, m_outer);
+    set_if_found(map, Button::k_regular_front_color, m_reg_color);
+    set_if_found(map, Button::k_hover_front_color, m_focus_color);
+#   if 0
+    temp = m_outer.color();
+    if (set_if_found(map, , temp)) {
+        m_outer.set_color(temp);
+    }
     if (auto * color = find<sf::Color>(map, k_background_color)) {
         m_inner.set_color(*color);
     }
@@ -156,9 +167,15 @@ void EditableText::set_style(const StyleMap & map) {
     if (auto * text_size = find<float>(map, TextArea::k_text_size)) {
         m_text.set_character_size(int(*text_size));
     }
-
+#   endif
+    set_if_found(map, k_global_padding, m_padding);
+    m_inner_padding = 2.f;
+    set_if_numeric_found(map, TextArea::k_text_size, m_text);
+#   if 0
+    float text_size = styles::get_unset_value<float>();
+    set_if_found(map, TextArea::k_text_size, text_size);
+#   endif
     m_text.assign_font(map, k_global_font);
-
     update_geometry();
 }
 
@@ -200,7 +217,7 @@ void EditableText::set_text_change_event(BlankFunc && f)
     { m_change_text_func = std::move(f); }
 
 float EditableText::max_text_width() const
-    { return width() - m_padding*2.f - m_inner_padding*2.f; }
+    { return width() - padding()*2.f - inner_padding()*2.f; }
 
 void EditableText::process_focus_event(const sf::Event & event) {
     if (event.type == sf::Event::TextEntered) {
@@ -252,16 +269,16 @@ void EditableText::notify_focus_lost()
         return;
     }
 
-    auto total_height = m_padding*2.f + m_inner_padding*2.f + m_text.line_height();
+    auto total_height = padding()*2.f + inner_padding()*2.f + m_text.line_height();
     m_outer.set_height(total_height);
-    m_inner.set_size(width() - m_padding*2.f, total_height - m_padding*2.f);
+    m_inner.set_size(width() - padding()*2.f, total_height - padding()*2.f);
     m_text.set_limiting_height(m_text.line_height());    
     m_text.set_limiting_width(
         max_text_width() - (need_ellipsis() ? m_ellipsis.width() : 0.f));
 
-    auto inner_loc = location() + VectorF(m_padding, m_padding);
+    auto inner_loc = location() + padding()*VectorF(1.f, 1.f);
     m_inner.set_position(inner_loc);
-    m_text .set_location(inner_loc + VectorF(m_inner_padding, m_inner_padding));
+    m_text .set_location(inner_loc + inner_padding()*VectorF(1.f, 1.f));
 
     m_ellipsis.set_location(inner_loc.x, inner_loc.y);
     m_ellipsis.set_size(m_inner.height() * 1.5f, m_inner.height());
@@ -274,6 +291,12 @@ void EditableText::notify_focus_lost()
     m_cursor.set_size    (m_text.line_height() / 3.f, m_text.line_height());
     m_cursor.set_color   (sf::Color::Black);
 }
+
+/* private */ float EditableText::padding() const noexcept
+    { return std::max(0.f, m_padding); }
+
+/* private */ float EditableText::inner_padding() const noexcept
+    { return std::max(0.f, m_inner_padding); }
 
 } // end of ksg namespace
 

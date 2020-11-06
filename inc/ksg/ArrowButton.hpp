@@ -32,7 +32,8 @@ namespace ksg {
 class ArrowButton final : public Button {
 public:
     enum class Direction {
-        k_up, k_down, k_right, k_left
+        k_up, k_down, k_right, k_left,
+        k_none
     };
 
     ArrowButton();
@@ -41,6 +42,10 @@ public:
 
     void set_arrow_color(sf::Color color_)
         { m_draw_tri.set_color(color_); }
+
+    Direction direction() const { return m_dir; }
+
+    void process_event(const sf::Event & evnt) override;
 
 private:
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;

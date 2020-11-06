@@ -33,10 +33,7 @@ namespace ksg {
 // ---                  Frame Helpers (FrameBorder Below)                   ---
 
 class Frame;
-#   if 0
-class FrameHelperPriv {
-    friend class Frame;
-#   endif
+
 namespace detail {
 
 /** Sentinal Widget type used to force the parent frame to move a new line
@@ -93,9 +90,7 @@ private:
 };
 
 } // end of detail namespace
-#   if 0
-}; // end of FrameHelperPriv class
-#   endif
+
 // ----------------------------------------------------------------------------
 
 /** A helper class for Frame. The object manages the border graphics, events,
@@ -118,12 +113,19 @@ public:
     static constexpr const float k_default_padding = 2.f;
 
     VectorF widget_start() const noexcept;
+
     VectorF location() const noexcept;
+
     float width() const noexcept { return m_back.width(); }
+
     float height() const noexcept { return m_back.height(); }
+
     EventResponseSignal process_event(const sf::Event &);
+
     void set_location(float x, float y);
+
     void set_style(const StyleMap &);
+
     void set_size(float w, float h);
 
     /** Sets the title of the border.
@@ -161,8 +163,11 @@ public:
     /** @return the pixel width available for widgets */
     float width_available_for_widgets() const noexcept;
 
+    void set_border_size(float pixels);
+
 private:
     void update_drag_position(int drect_x, int drect_y) override;
+
     void draw(sf::RenderTarget &, sf::RenderStates) const override;
 
     float title_height() const noexcept;
@@ -171,11 +176,14 @@ private:
 
     static ClickResponse do_default_click_event();
 
-    float m_outer_padding = k_default_padding;
+    float outer_padding() const noexcept;
+
+    float m_outer_padding = styles::get_unset_value<float>();
     bool m_recently_dragged = false;
-    DrawRectangle m_back;
-    DrawRectangle m_title_bar;
-    DrawRectangle m_widget_body;
+
+    DrawRectangle m_back        = styles::make_rect_with_unset_color();
+    DrawRectangle m_title_bar   = styles::make_rect_with_unset_color();
+    DrawRectangle m_widget_body = styles::make_rect_with_unset_color();
 
     Text m_title;
 

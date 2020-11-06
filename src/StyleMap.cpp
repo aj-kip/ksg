@@ -45,6 +45,12 @@ namespace ksg {
 
 namespace styles {
 
+DrawRectangle make_rect_with_unset_color() {
+    DrawRectangle rect;
+    rect.set_color(get_unset_value<sf::Color>());
+    return rect;
+}
+
 StyleMap construct_system_styles() {
     using sf::Color;
     StyleMap smap;
@@ -91,6 +97,10 @@ StylesField load_font(const std::string & filename) {
         return StylesField();
     }
 }
+
+/* private static */ void SetIfNumericFoundPriv::set_char_size
+    (Text & text, int sz)
+{ text.set_character_size(sz); }
 
 } // end of styles namespace
 

@@ -35,31 +35,40 @@ namespace ksg {
 using VectorF = OptionsSlider::VectorF;
 using UString = OptionsSlider::UString;
 
-OptionsSlider::OptionsSlider(): m_selected_index(0), m_padding(0.f) {
-    m_left_arrow.set_direction(ArrowButton::Direction::k_left);
-    m_right_arrow.set_direction(ArrowButton::Direction::k_right);
-
-    m_right_arrow.set_press_event([this]() {
-        if (selected_option_index() == options_count() - 1) return;
-        select_option(selected_option_index() + 1);
-        if (m_press_func)
-            m_press_func();
-    });
-    m_left_arrow.set_press_event([this]()  {
-        if (selected_option_index() == 0) return;
-        select_option(selected_option_index() - 1);
-        if (m_press_func)
-            m_press_func();
-    });
+OptionsSlider::OptionsSlider() {
 #   if 0
-    set_next(&m_left_arrow);
-
-    m_left_arrow.set_next(&m_right_arrow);
+    m_left_arrow .set_direction(ArrowButton::Direction::k_left );
+    m_right_arrow.set_direction(ArrowButton::Direction::k_right);
 #   endif
+    m_right_arrow.set_press_event([this]() {
+        std::size_t next_index;
+        if (selected_option_index() != options_count() - 1) {
+            next_index = selected_option_index() + 1;
+        } else if (m_wrap_enabled) {
+            next_index = 0;
+        } else {
+            return;
+        }
+        select_option(next_index);
+        m_press_func();
+    });
+
+    m_left_arrow.set_press_event([this]()  {
+        std::size_t next_index;
+        if (selected_option_index() != 0) {
+            next_index = selected_option_index() - 1;
+        } else if (m_wrap_enabled) {
+            next_index = m_options.size() - 1;
+        } else {
+            return;
+        }
+        select_option(next_index);
+        m_press_func();
+    });
 }
 
 void OptionsSlider::process_event(const sf::Event & evnt) {
-    m_left_arrow.process_event(evnt);
+    m_left_arrow .process_event(evnt);
     m_right_arrow.process_event(evnt);
 }
 
@@ -67,30 +76,27 @@ void OptionsSlider::set_location(float x, float y) {
     m_left_arrow.set_location(x, y);
     if (is_horizontal()) {
         m_back.set_position(x + m_left_arrow.width(), y);
-        m_front.set_position(x + m_left_arrow.width(), y + m_padding);
+        m_front.set_position(x + m_left_arrow.width(), y + padding());
         m_right_arrow.set_location(x + m_left_arrow.width() + m_back.width(),
                                    y);
     } else {
         assert(is_vertical());
         m_back.set_position(x, y + m_left_arrow.height());
-        m_front.set_position(x + m_padding, y + m_left_arrow.height());
+        m_front.set_position(x + padding(), y + m_left_arrow.height());
         m_right_arrow.set_location(x,
                                    y + m_left_arrow.height() + m_back.height());
     }
     recenter_text();
 }
 
-VectorF OptionsSlider::location() const {
-    return m_left_arrow.location();
-}
+VectorF OptionsSlider::location() const
+    { return m_left_arrow.location(); }
 
-float OptionsSlider::width() const {
-    return m_size.x;
-}
+float OptionsSlider::width() const
+    { return m_size.x; }
 
-float OptionsSlider::height() const {
-    return m_size.y;
-}
+float OptionsSlider::height() const
+    { return m_size.y; }
 
 void OptionsSlider::set_style(const StyleMap & smap) {
     using namespace styles;
@@ -99,6 +105,12 @@ void OptionsSlider::set_style(const StyleMap & smap) {
 
     set_if_present(m_text, smap, k_global_font,
                    TextButton::k_text_size, TextButton::k_text_color);
+    if (!set_if_found(smap, k_global_padding, m_padding)) {
+        m_padding = 2.f;
+    }
+    set_if_color_found(smap, Button::k_regular_front_color, m_front);
+    set_if_color_found(smap, Button::k_regular_back_color , m_back );
+#   if 0
     if (auto * pad = find<float>(smap, k_global_padding))
         { m_padding = *pad; }
 
@@ -106,9 +118,10 @@ void OptionsSlider::set_style(const StyleMap & smap) {
         m_front.set_color(*color);
     if (auto * color = find<sf::Color>(smap, Button::k_regular_back_color))
         m_back.set_color(*color);
+#   endif
     // setting style should not invoke any kind of geometry update
 }
-
+#if 0
 void OptionsSlider::set_size(float w, float h) {
     if (w == 0.f || h == 0.f) return;
     if (m_padding > w || m_padding > h) {
@@ -117,29 +130,34 @@ void OptionsSlider::set_size(float w, float h) {
     }
     m_size = VectorF(w, h);
 
-    float arrow_size = size_for_arrows(w, h);
+    float arrow_size = std::min(w, h);
     m_left_arrow .set_size(arrow_size, arrow_size);
     m_right_arrow.set_size(arrow_size, arrow_size);
 
     m_back .set_size(w - arrow_size*2.f, h);
-    m_front.set_size(w - arrow_size*2.f, h - m_padding*2.f);
-#   if 0
-    static constexpr const float k_force_min = 1.f;
-    if (h < w) {
-        // horizontal
-        float long_dim = std::max(k_force_min, w - h*2.f);
-        m_back.set_size(long_dim, h);
-        m_front.set_size(long_dim, std::max(k_force_min, h - m_padding*2.f));
-    } else {
-        // vertical
-        float long_dim = std::max(k_force_min, h - w*2.f);
-        m_back.set_size(w, long_dim);
-        m_front.set_size(std::max(k_force_min, w - m_padding*2.f), long_dim);
-    }
-#   endif
+    m_front.set_size(w - arrow_size*2.f, h - padding()*2.f);
+
     set_location(location().x, location().y);
     m_text.set_limiting_dimensions(m_front.width(), m_front.height());
     recenter_text();
+}
+#endif
+void OptionsSlider::set_interior_size(float w, float h) {
+    if (w == 0.f || h == 0.f) return;
+    if (m_padding > w || m_padding > h) {
+        // have to get right of padding, constraints too tight!
+        m_padding = 0.f;
+    }
+    float arrow_size = h;//std::min(w, h);
+    m_left_arrow .set_size(arrow_size, arrow_size);
+    m_right_arrow.set_size(arrow_size, arrow_size);
+
+    m_back .set_size(w + padding()*2.f, h);
+    m_front.set_size(w + padding()*2.f, h - padding()*2.f);
+
+    m_text.set_limiting_dimensions(m_front.width(), m_front.height());
+    m_size = VectorF(w + arrow_size*2.f, h);
+    set_location(location().x, location().y);
 }
 
 void OptionsSlider::swap_options(std::vector<UString> & options) {
@@ -164,19 +182,36 @@ void OptionsSlider::select_option(std::size_t index) {
     }
     m_selected_index = index;
     m_text.set_string(m_options[m_selected_index]);
+    set_wrap_enabled(m_wrap_enabled);
     recenter_text();
 }
 
-std::size_t OptionsSlider::selected_option_index() const {
-    return m_selected_index;
-}
+std::size_t OptionsSlider::selected_option_index() const
+    { return m_selected_index; }
 
-const UString & OptionsSlider::selected_option() const {
-    return m_options[m_selected_index];
-}
+const UString & OptionsSlider::selected_option() const
+    { return m_options[m_selected_index]; }
 
-void OptionsSlider::set_option_change_event(BlankFunctor && func) {
-    m_press_func = std::move(func);
+void OptionsSlider::set_option_change_event(BlankFunctor && func)
+    { m_press_func = std::move(func); }
+
+void OptionsSlider::set_wrap_enabled(bool b) {
+    m_wrap_enabled = b;
+
+    if (m_options.empty()) return;
+
+    using Dir = ArrowButton::Direction;
+    if (!m_wrap_enabled && m_selected_index == m_options.size() - 1) {
+        m_right_arrow.set_direction(Dir::k_none);
+    } else {
+        m_right_arrow.set_direction(Dir::k_right);
+    }
+
+    if (!m_wrap_enabled && m_selected_index == 0) {
+        m_left_arrow.set_direction(Dir::k_none);
+    } else {
+        m_left_arrow.set_direction(Dir::k_left);
+    }
 }
 
 /* private */ void OptionsSlider::draw
@@ -185,7 +220,7 @@ void OptionsSlider::set_option_change_event(BlankFunctor && func) {
     target.draw(m_back);
     target.draw(m_front);
     target.draw(m_text);
-    target.draw(m_left_arrow);
+    target.draw(m_left_arrow );
     target.draw(m_right_arrow);
 }
 
@@ -203,21 +238,15 @@ void OptionsSlider::set_option_change_event(BlankFunctor && func) {
 #       endif
     }
 
-    float height_ = m_text.line_height() + 2.f*m_padding;
+    float height_ = m_text.line_height() + 2.f*padding();
+    set_interior_size(width_, height_);
+#   if 0
     auto arrow_size = size_for_arrows(width_, height_);
-    width_  += 2.f*(m_padding + arrow_size);
+    width_  += 2.f*(padding() + arrow_size);
 
     set_size(width_, height_);
+#   endif
 }
-
-#if 0
-/* private */ void OptionsSlider::add_focus_widgets_to
-    (std::vector<FocusWidget *> & cont)
-{
-    cont.push_back(&m_left_arrow );
-    cont.push_back(&m_right_arrow);
-}
-#endif
 
 /* private */ void OptionsSlider::iterate_children_
     (ChildWidgetIterator & itr)
@@ -240,5 +269,8 @@ void OptionsSlider::set_option_change_event(BlankFunctor && func) {
     m_text.set_location(m_front.x() + std::max(0.f, width_diff  / 2.f),
                         m_front.y() + std::max(0.f, height_diff / 2.f));
 }
+
+/* private */ float OptionsSlider::padding() const noexcept
+    { return std::max(0.f, m_padding); }
 
 } // end of ksg namespace

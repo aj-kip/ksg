@@ -27,27 +27,32 @@
 
 namespace ksg {
 
-ArrowButton::ArrowButton(): m_dir(Direction::k_right) {}
+ArrowButton::ArrowButton(): m_dir(Direction::k_none) {}
 
 void ArrowButton::set_direction(Direction dir_) {
+    if (m_dir == dir_) return;
     m_dir = dir_;
     update_points();
+}
+
+void ArrowButton::process_event(const sf::Event & evnt) {
+    if (m_dir == Direction::k_none) return;
+    Button::process_event(evnt);
 }
 
 /* private */ void ArrowButton::draw
     (sf::RenderTarget & target, sf::RenderStates) const
 {
     Button::draw(target, sf::RenderStates::Default);
+    if (m_dir == Direction::k_none) return;
     target.draw(m_draw_tri);
 }
 
-/* private */ void ArrowButton::on_size_changed(float, float) {
-    update_points();
-}
+/* private */ void ArrowButton::on_size_changed(float, float)
+    { update_points(); }
 
-/* private */ void ArrowButton::on_location_changed(float, float) {
-    update_points();
-}
+/* private */ void ArrowButton::on_location_changed(float, float)
+    { update_points(); }
 
 /* private */ void ArrowButton::update_points() {
     VectorF anchor = location() + VectorF(width()/2.f, height()/2.f);
@@ -73,6 +78,9 @@ void ArrowButton::set_direction(Direction dir_) {
         m_draw_tri.set_point_a(anchor + VectorF(    0.f, -offset));
         m_draw_tri.set_point_b(anchor + VectorF(-offset,  offset));
         m_draw_tri.set_point_c(anchor + VectorF( offset,  offset));
+        break;
+    case Direction::k_none:
+        deselect();
         break;
     }
 }
