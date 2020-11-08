@@ -98,6 +98,9 @@ void TopLevelFrame::setup() {
     auto styles_ = ksg::styles::construct_system_styles();
     styles_[ksg::styles::k_global_font] = ksg::styles::load_font("font.ttf");
 
+    set_title(U"Nested Frames Test App");
+    set_drag_enabled(false);
+
     m_nested.setup();
 
     m_top_level_notice.set_string(U"Top level text notice.");

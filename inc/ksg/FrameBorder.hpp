@@ -136,6 +136,11 @@ public:
      */
     void set_title(const UString &);
 
+    /** @brief Sets the font size for the border title.
+     *  @param font_size font size in points
+     */
+    void set_title_size(int font_size);
+
     /** Sets the function/functor to call in the event that the mouse is
      *  clicked inside the frame.
      *  @param f function that takes no arguments and returns a ClickResponse

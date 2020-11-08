@@ -127,27 +127,6 @@ void FrameBorder::set_style(const StyleMap & smap) {
     else if (std::equal_to<float>()(m_outer_padding, get_unset_value<float>())) {
         m_outer_padding = k_default_padding;
     }
-#   if 0
-    if (!set_if_found(smap, Frame::k_border_size, m_outer_padding)) {
-        if (!set_if_found(smap, k_global_padding, m_outer_padding)) {
-            if (std::equal_to<float>()(m_outer_padding, get_unset_value<float>()))
-                m_outer_padding = k_default_padding;
-        }
-    }
-#   endif
-#   if 0
-    if (auto * color = find<sf::Color>(smap, Frame::k_background_color))
-        m_back.set_color(*color);
-    if (auto * color = find<sf::Color>(smap, Frame::k_title_bar_color))
-        m_title_bar.set_color(*color);
-    if (auto * color = find<sf::Color>(smap, Frame::k_widget_body_color))
-        m_widget_body.set_color(*color);
-    if (auto * pad = find<float>(smap, Frame::k_border_size)) {
-        m_outer_padding = *pad;
-    } else if (auto * pad = find<float>(smap, k_global_padding)) {
-        m_outer_padding = *pad;
-    }
-#   endif
 }
 
 void FrameBorder::set_size(float w, float h)
@@ -161,6 +140,9 @@ void FrameBorder::set_title(const UString & title_text) {
         watch_for_drag_events();
     }
 }
+
+void FrameBorder::set_title_size(int font_size)
+    { m_title.set_character_size(font_size); }
 
 void FrameBorder::reset_register_click_event()
     { m_click_in_frame = do_default_click_event; }

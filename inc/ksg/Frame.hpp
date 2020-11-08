@@ -234,11 +234,6 @@ public:
         std::vector<Widget *> &&, std::vector<detail::HorizontalSpacer> &&,
         detail::LineSeperator * the_line_sep, const StyleMap *);
 
-    /** Sets the title of the frame.
-     *  @param str the new title of the frame
-     */
-    void set_title(const UString &);
-
     /** Sets the function/functor to call in the event that the mouse is
      *  clicked inside the frame.
      *  @param f function that takes no arguments and returns a ClickResponse
@@ -256,7 +251,33 @@ public:
 
     void set_padding(float pixels);
 
+    // <---------------------- Frame border/title stuff ---------------------->
+
+    /** Sets the title of the frame.
+     *  @param str the new title of the frame
+     */
+    void set_title(const UString &);
+
+    /** @brief Sets the font size for the border title.
+     *  @param font_size font size in points
+     */
+    void set_title_size(int font_size);
+
+    /** @brief Sets frame's border size (the margins at the extremes of the
+     *         frame). Default is five pixels.
+     *  @param pixels size in pixels
+     */
     void set_frame_border_size(float pixels);
+
+    /** @brief enable/disables the drag frame by title feature, enabled by
+     *         default if a title is present.
+     */
+    void set_drag_enabled(bool);
+
+    /** @returns true if dragging is enabled (only available if a title is
+     *           set!)
+     */
+    bool has_drag_enabled() const;
 
     void swap(Frame &);
 
@@ -334,6 +355,17 @@ public:
 
 inline void Frame::set_title(const UString & title)
     { m_border.set_title(title); }
+
+inline void Frame::set_title_size(int font_size)
+    { m_border.set_title_size(font_size); }
+
+inline void Frame::set_drag_enabled(bool b) {
+    if (b) m_border.watch_for_drag_events();
+    else m_border.ignore_drag_events();
+}
+
+inline bool Frame::has_drag_enabled() const
+    { return m_border.is_watching_for_drag_events(); }
 
 template <typename Func>
 void Frame::set_register_click_event(Func && f)

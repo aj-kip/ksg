@@ -39,6 +39,20 @@ namespace ksg {
  *  (drag_release).
  */
 class Draggable {
+public:
+    /** Ignores all potential drag events regardless of where a mouse click
+     *  event occurs.
+     */
+    void ignore_drag_events() { m_watch_drag_events = false; }
+
+    /** Causes the draggable object to watch for drag events. This function
+     *  negates the effect of the ignore_drag_events method.
+     */
+    void watch_for_drag_events() { m_watch_drag_events = true; }
+
+    /** @returns true if the draggable is watching for drag events */
+    bool is_watching_for_drag_events() const { return m_watch_drag_events; }
+
 protected:
     using MouseButton = sf::Mouse::Button;
 
@@ -93,15 +107,6 @@ protected:
      */
     virtual void update_drag_position(int drect_x, int drect_y) = 0;
 
-    /** Ignores all potential drag events regardless of where a mouse click
-     *  event occurs.
-     */
-    void ignore_drag_events() { m_watch_drag_events = false; }
-
-    /** Causes the draggable object to watch for drag events. This function
-     *  negates the effect of the ignore_drag_events method.
-     */
-    void watch_for_drag_events() { m_watch_drag_events = true; }
 private:
     static bool is_in_rect(int x, int y, const DrawRectangle & drect);
 

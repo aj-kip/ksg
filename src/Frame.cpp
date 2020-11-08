@@ -257,7 +257,7 @@ void Frame::set_padding(float pixels)
 void Frame::set_frame_border_size(float pixels)
     { m_border.set_border_size(pixels); }
 
-void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
+/* protected */ void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
     if (!is_visible()) return;
 
     target.draw(m_border);
@@ -267,7 +267,7 @@ void Frame::draw(sf::RenderTarget & target, sf::RenderStates) const {
     }
 }
 
-void Frame::finalize_widgets() {
+/* private */ void Frame::finalize_widgets() {
     // auto sizing
     issue_auto_resize();
 
