@@ -43,7 +43,7 @@ SOURCES += \
     ../src/TextButton.cpp    \
     ../src/Frame.cpp         \
     ../src/SelectionMenu.cpp \
-    ../demos/nested-frames-n-sliders.cpp
+    ../demos/demo.cpp
 
 HEADERS += \
     \ # private headers
