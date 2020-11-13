@@ -36,10 +36,6 @@ using VectorF = OptionsSlider::VectorF;
 using UString = OptionsSlider::UString;
 
 OptionsSlider::OptionsSlider() {
-#   if 0
-    m_left_arrow .set_direction(ArrowButton::Direction::k_left );
-    m_right_arrow.set_direction(ArrowButton::Direction::k_right);
-#   endif
     m_right_arrow.set_press_event([this]() {
         std::size_t next_index;
         if (selected_option_index() != options_count() - 1) {
@@ -110,38 +106,10 @@ void OptionsSlider::set_style(const StyleMap & smap) {
     }
     set_if_color_found(smap, Button::k_regular_front_color, m_front);
     set_if_color_found(smap, Button::k_regular_back_color , m_back );
-#   if 0
-    if (auto * pad = find<float>(smap, k_global_padding))
-        { m_padding = *pad; }
 
-    if (auto * color = find<sf::Color>(smap, Button::k_regular_front_color))
-        m_front.set_color(*color);
-    if (auto * color = find<sf::Color>(smap, Button::k_regular_back_color))
-        m_back.set_color(*color);
-#   endif
     // setting style should not invoke any kind of geometry update
 }
-#if 0
-void OptionsSlider::set_size(float w, float h) {
-    if (w == 0.f || h == 0.f) return;
-    if (m_padding > w || m_padding > h) {
-        // have to get right of padding, constraints too tight!
-        m_padding = 0.f;
-    }
-    m_size = VectorF(w, h);
 
-    float arrow_size = std::min(w, h);
-    m_left_arrow .set_size(arrow_size, arrow_size);
-    m_right_arrow.set_size(arrow_size, arrow_size);
-
-    m_back .set_size(w - arrow_size*2.f, h);
-    m_front.set_size(w - arrow_size*2.f, h - padding()*2.f);
-
-    set_location(location().x, location().y);
-    m_text.set_limiting_dimensions(m_front.width(), m_front.height());
-    recenter_text();
-}
-#endif
 void OptionsSlider::set_interior_size(float w, float h) {
     if (w == 0.f || h == 0.f) return;
     if (m_padding > w || m_padding > h) {
@@ -156,7 +124,8 @@ void OptionsSlider::set_interior_size(float w, float h) {
     m_front.set_size(w + padding()*2.f, h - padding()*2.f);
 
     m_text.set_limiting_dimensions(m_front.width(), m_front.height());
-    m_size = VectorF(w + arrow_size*2.f, h);
+    // do I need padding around here?
+    m_size = VectorF(w + arrow_size*2.f + padding()*2.f, h);
     set_location(location().x, location().y);
 }
 
@@ -227,25 +196,13 @@ void OptionsSlider::set_wrap_enabled(bool b) {
 /* private */ void OptionsSlider::issue_auto_resize() {
     if (width() != 0.f || height() != 0.f || !m_text.has_font_assigned()) return;
     float width_ = 0.f;
-#   if 0
-    float height_ = 0.f;
-#   endif
     for (const auto & str : m_options) {
         auto gv = m_text.measure_text(str);
         width_  = std::max(width_ , gv.width );
-#       if 0
-        height_ = std::max(height_, gv.height);
-#       endif
     }
 
     float height_ = m_text.line_height() + 2.f*padding();
     set_interior_size(width_, height_);
-#   if 0
-    auto arrow_size = size_for_arrows(width_, height_);
-    width_  += 2.f*(padding() + arrow_size);
-
-    set_size(width_, height_);
-#   endif
 }
 
 /* private */ void OptionsSlider::iterate_children_

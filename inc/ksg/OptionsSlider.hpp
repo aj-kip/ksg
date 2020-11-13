@@ -50,9 +50,7 @@ public:
     float height() const override;
 
     void set_style(const StyleMap &) override;
-#   if 0
-    void set_size(float w, float h);
-#   endif
+
     /** @brief Sets the size of the widget by setting the size of it's interior.
      *
      *  @note The size of the arrows is determined by the height. They are made

@@ -87,11 +87,11 @@ void NestedWithSliders::setup() {
 
     if (!k_enable_borders) set_frame_border_size(0.f);
 
-    begin_adding_widgets().
-        add(m_nested).add_line_seperator().
-        add(m_one).add_line_seperator().
-        add(m_two).add_line_seperator().
-        add(m_three).add_line_seperator();
+    begin_adding_widgets()
+        .add(m_nested).add_line_seperator()
+        .add_horizontal_spacer().add(m_one).add_line_seperator()
+        .add_horizontal_spacer().add(m_two).add_line_seperator()
+        .add_horizontal_spacer().add(m_three).add_line_seperator();
 }
 
 void TopLevelFrame::setup() {
@@ -109,10 +109,10 @@ void TopLevelFrame::setup() {
     m_exit.set_string(U"Exit");
     m_exit.set_press_event([this]() { m_requesting_quit = true; });
 
-    begin_adding_widgets(styles_).
-        add(m_top_level_notice).add_line_seperator().
-        add(m_nested).add_line_seperator().
-        add_horizontal_spacer().add(m_exit);
+    begin_adding_widgets(styles_)
+        .add(m_top_level_notice).add_line_seperator()
+        .add(m_nested).add_line_seperator()
+        .add_horizontal_spacer().add(m_exit);
 }
 
 // ----------------------------------------------------------------------------

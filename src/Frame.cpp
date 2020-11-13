@@ -419,6 +419,9 @@ void Frame::swap(Frame & lhs) {
     // ignore auto resize if the frame as a width/height already set
     for (Widget * widget_ptr : m_widgets)
         widget_ptr->issue_auto_resize();
+
+    issue_auto_resize_for_frame();
+
     if (width() == 0.f || height() == 0.f) {
         auto size_ = compute_size_to_fit();
         set_size(size_.x, size_.y);

@@ -292,6 +292,20 @@ protected:
      */
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
 
+    /** @brief Sometimes the most derived frame class will have it's own auto
+     *         resize behavior.
+     *
+     *  The issue_auto_resize behaviors defined in Frame, are mandatory for
+     *  this class to work. This method is provided as an "issue_auto_resize"
+     *  for classes inheriting from Frame. Added member widgets will have their
+     *  "issue_auto_resize" called first.
+     *
+     *  @note much like "issue_auto_resize" styles are set for widgets on this
+     *        call, so that information is provided for any desired geometric
+     *        work.
+     */
+    virtual void issue_auto_resize_for_frame() {}
+
 private:
     using WidgetItr = std::vector<Widget *>::iterator;
     using LineSeperator = detail::LineSeperator;

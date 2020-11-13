@@ -84,7 +84,9 @@ public:
 
     /** @brief Called by frame for automatic widget sizing.
      *  This in effect is telling the widget, go ahead, there are no
-     *  restrictions on widget size
+     *  restrictions on widget size.
+     *  @note This is called after styles are set, so fonts for widgets and
+     *        others will be accessible on this call.
      *  @note The default behavior is for the widget to do nothing (no resize)
      *  @note Presently Frame and TextArea both use this function.
      */
