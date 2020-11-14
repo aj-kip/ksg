@@ -47,25 +47,34 @@ void DrawTriangle::move(VectorF r) {
         v.position += r;
 }
 
-void DrawTriangle::set_location(VectorF r) { move(r - location()); }
+void DrawTriangle::set_location(VectorF r) { move(r - center()); }
 
 void DrawTriangle::set_location(float x, float y)
-    { move(VectorF(x, y) - location()); }
+    { move(VectorF(x, y) - center()); }
+
+void DrawTriangle::set_center(VectorF r)
+    { move(r - center()); }
+
+void DrawTriangle::set_center(float x, float y)
+    { set_center(VectorF(x, y)); }
 
 VectorF DrawTriangle::point_a() const
     { return m_verticies[k_point_a].position; }
 
 VectorF DrawTriangle::point_b() const
-    { return m_verticies[k_point_c].position; }
+    { return m_verticies[k_point_b].position; }
 
 VectorF DrawTriangle::point_c() const
     { return m_verticies[k_point_c].position; }
 
-VectorF DrawTriangle::location() const {
+VectorF DrawTriangle::location() const
+    { return center(); }
+
+VectorF DrawTriangle::center() const {
     VectorF loc;
     for (const sf::Vertex & v : m_verticies)
         loc += v.position;
-    return loc;
+    return loc * (1.f / float(k_vertex_count));
 }
 
 sf::Color DrawTriangle::color() const { return m_verticies[k_point_a].color; }
@@ -76,5 +85,5 @@ void DrawTriangle::set_color(sf::Color color_) {
 }
 
 /* private */ void DrawTriangle::draw
-    (sf::RenderTarget & target, sf::RenderStates) const
-    { target.draw(&*m_verticies.begin(), m_verticies.size(), sf::Triangles); }
+    (sf::RenderTarget & target, sf::RenderStates states) const
+    { target.draw(&*m_verticies.begin(), m_verticies.size(), sf::Triangles, states); }

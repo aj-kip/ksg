@@ -49,9 +49,13 @@ public:
 
     void move(VectorF);
 
-    void set_location(VectorF);
+    [[deprecated]] void set_location(VectorF);
 
-    void set_location(float, float);
+    [[deprecated]] void set_location(float, float);
+
+    void set_center(VectorF);
+
+    void set_center(float, float);
 
     VectorF point_a() const;
 
@@ -59,14 +63,16 @@ public:
 
     VectorF point_c() const;
 
-    VectorF location() const;
+    [[deprecated]] VectorF location() const;
+
+    VectorF center() const;
 
     sf::Color color() const;
 
     void set_color(sf::Color);
 
 private:
-    void draw(sf::RenderTarget & target, sf::RenderStates) const override;
+    void draw(sf::RenderTarget &, sf::RenderStates) const override;
 
     FixedLengthArray<sf::Vertex, k_vertex_count> m_verticies;
 };
