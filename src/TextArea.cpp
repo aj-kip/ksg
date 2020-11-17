@@ -31,10 +31,20 @@
 
 using VectorF = ksg::Widget::VectorF;
 
+namespace {
+
+bool is_unassigned(float x)
+    { return std::equal_to<float>()(x, ksg::TextArea::k_unassigned_size); }
+
+float verify_valid_size(float, const char * caller, const char * name);
+
+} // end of <anonymous> namespace
+
 namespace ksg {
 
-void set_if_present(Text & text, const StyleMap & smap, const char * font_field,
-                    const char * char_size_field, const char * text_color)
+/* free fn */ void set_if_present
+    (Text & text, const StyleMap & smap, const char * font_field,
+     const char * char_size_field, const char * text_color)
 {
     using namespace styles;
     text.assign_font(smap, font_field);
@@ -54,22 +64,32 @@ void set_if_present(Text & text, const StyleMap & smap, const char * font_field,
 
 /* static */ constexpr const char * const TextArea::k_text_color;
 /* static */ constexpr const char * const TextArea::k_text_size ;
+/* static */ constexpr const float TextArea::k_unassigned_size;
 
 TextArea::TextArea() {}
 
 void TextArea::process_event(const sf::Event &) {}
 
 void TextArea::set_location(float x, float y) {
-    m_draw_text.set_location(x, y);
+    m_bounds.left = x;
+    m_bounds.top  = y;
     recompute_geometry();
 }
 
 VectorF TextArea::location() const
     { return m_draw_text.location(); }
 
-float TextArea::width () const { return m_draw_text.width (); }
+float TextArea::width () const {
+    if (is_unassigned(m_bounds.width))
+        return m_draw_text.width();
+    return m_bounds.width;
+}
 
-float TextArea::height() const { return m_draw_text.height(); }
+float TextArea::height() const {
+    if (is_unassigned(m_bounds.height))
+        return m_draw_text.height();
+    return m_bounds.height;
+}
 
 void TextArea::set_style(const StyleMap & smap) {
     using namespace styles;
@@ -96,18 +116,31 @@ void TextArea::set_character_size(int size_) {
     recompute_geometry();
 }
 
-void TextArea::set_width (float w) {
-    m_draw_text.set_limiting_width(w);
-    recompute_geometry();
+void TextArea::set_width(float w) {
+    set_size(w, m_bounds.height);
 }
 
 void TextArea::set_height(float h) {
-    m_draw_text.set_limiting_height(h);
+    set_size(m_bounds.width, h);
+}
+
+void TextArea::set_max_width(float w) {
+    set_max_width_no_update(w);
+    recompute_geometry();
+}
+
+void TextArea::set_max_height(float h) {
+    set_max_height_no_update(h);
     recompute_geometry();
 }
 
 void TextArea::set_size(float w, float h) {
-    m_draw_text.set_limiting_dimensions(w, h);
+    m_bounds.width = verify_valid_size(w, "TextArea::set_size", "width");
+    set_max_width_no_update(w);
+
+    m_bounds.height = verify_valid_size(h, "TextArea::set_size", "height");
+    set_max_height_no_update(h);
+
     recompute_geometry();
 }
 
@@ -122,6 +155,51 @@ void TextArea::assign_font(const sf::Font & font) {
     target.draw(m_draw_text);
 }
 
-/* private */ void TextArea::recompute_geometry() {}
+/* private */ void TextArea::recompute_geometry() {
+    VectorF text_loc;
+    if (is_unassigned(m_bounds.width)) {
+        text_loc.x = m_bounds.left;
+    } else {
+        text_loc.x = m_bounds.left + (m_bounds.width - m_draw_text.width()) / 2;
+    }
+    if (is_unassigned(m_bounds.height)) {
+        text_loc.y = m_bounds.top;
+    } else {
+        text_loc.y = m_bounds.top + (m_bounds.height - m_draw_text.height()) / 2;
+    }
+    m_draw_text.set_location(text_loc);
+}
+
+/* private */ void TextArea::set_max_width_no_update(float w) {
+    verify_valid_size(w, "TextArea::set_max_width_no_update", "width");
+    if (is_unassigned(w)) {
+        m_draw_text.relieve_width_limit();
+    } else {
+        m_draw_text.set_limiting_width(w);
+    }
+}
+
+/* private */ void TextArea::set_max_height_no_update(float h) {
+    verify_valid_size(h, "TextArea::set_max_height_no_update", "height");
+    if (is_unassigned(h)) {
+        m_draw_text.relieve_height_limit();
+    } else {
+        m_draw_text.set_limiting_height(h);
+    }
+}
 
 } // end of ksg namespace
+
+namespace {
+
+float verify_valid_size(float x, const char * caller, const char * name) {
+    if (is_unassigned(x)) return x;
+    if (x < 0.f) {
+        throw std::invalid_argument(
+            std::string(caller) + ": " + name + " must be a non-negative real "
+            "number or the k_unassigned_size sentinel.");
+    }
+    return x;
+}
+
+} // end of <anonymous> namespace
