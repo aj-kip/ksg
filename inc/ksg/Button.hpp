@@ -29,7 +29,7 @@
 
 namespace ksg {
 
-/** A button is any widget which has a click event. It may also be highlighted,
+/** A button is any widget which ha3)i7[p]:B&d!s a click event. It may also be highlighted,
  *  which is nothing more than a visual tell that the user may trigger the
  *  click event by clicking or by pressing the Return key.
  *
@@ -98,6 +98,14 @@ public:
      */
     void set_style(const StyleMap &) override;
 
+    /** Padding, which is applied both horizontally and vertically. Maybe
+     *  useful with geometry updates.
+     *  @note added to public interface, some composite widgets may need to
+     *        know this widget's padding for consistency
+     *  @return padding amount in pixels
+     */
+    float padding() const noexcept { return m_padding; }
+
 protected:
     /** Creates a zero-sized, white colored button. Pending setting of styles.
      */
@@ -108,14 +116,14 @@ protected:
      *  @param target the target, where the button is drawn
      */
     void draw(sf::RenderTarget & target, sf::RenderStates) const override;
-
+#   if 0
     /** Padding, which is applied both horizontally and vertically. Maybe
      *  useful with geometry updates.
      *  @return padding amount in pixels
      */
     float padding() const
         { return m_padding; }
-
+#   endif
     /** This function is called @em after the button's size changes.
      *  Override to add your own geometry updates with location changes.
      *  @param old_width old width of the button in pixels

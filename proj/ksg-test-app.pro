@@ -21,7 +21,7 @@ linux {
 debug {
     TARGET  = ksg-d
     LIBS += "-L$$PWD/../lib/cul"
-    LIBS   += -lcommon-d
+    LIBS   += -lcommon
 }
 
 SOURCES += \

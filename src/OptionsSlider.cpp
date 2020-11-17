@@ -71,7 +71,7 @@ void OptionsSlider::process_event(const sf::Event & evnt) {
 void OptionsSlider::set_location(float x, float y) {
     m_left_arrow.set_location(x, y);
     if (is_horizontal()) {
-        m_back.set_position(x + m_left_arrow.width(), y);
+        m_back .set_position(x + m_left_arrow.width(), y);
         m_front.set_position(x + m_left_arrow.width(), y + padding());
         m_right_arrow.set_location(x + m_left_arrow.width() + m_back.width(),
                                    y);
@@ -101,9 +101,11 @@ void OptionsSlider::set_style(const StyleMap & smap) {
 
     set_if_present(m_text, smap, k_global_font,
                    TextButton::k_text_size, TextButton::k_text_color);
+#   if 0
     if (!set_if_found(smap, k_global_padding, m_padding)) {
         m_padding = 2.f;
     }
+#   endif
     set_if_color_found(smap, Button::k_regular_front_color, m_front);
     set_if_color_found(smap, Button::k_regular_back_color , m_back );
 
@@ -112,10 +114,12 @@ void OptionsSlider::set_style(const StyleMap & smap) {
 
 void OptionsSlider::set_interior_size(float w, float h) {
     if (w == 0.f || h == 0.f) return;
+#   if 0
     if (m_padding > w || m_padding > h) {
         // have to get right of padding, constraints too tight!
         m_padding = 0.f;
     }
+#   endif
     float arrow_size = h;//std::min(w, h);
     m_left_arrow .set_size(arrow_size, arrow_size);
     m_right_arrow.set_size(arrow_size, arrow_size);
@@ -228,6 +232,6 @@ void OptionsSlider::set_wrap_enabled(bool b) {
 }
 
 /* private */ float OptionsSlider::padding() const noexcept
-    { return std::max(0.f, m_padding); }
+    { return std::max(0.f, m_left_arrow.padding()); }
 
 } // end of ksg namespace

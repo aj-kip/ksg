@@ -52,6 +52,7 @@
 
 #include <array>
 #include <memory>
+#include <algorithm>
 
 #include <cassert>
 
@@ -63,6 +64,7 @@ using FontMtPtr              = ksg::detail::FontMtPtr;
 using TextSize               = ksg::Text::TextSize;
 using VectorF                = ksg::Text::VectorF;
 using InvalidArg             = std::invalid_argument;
+using DrawableCharacter      = ksg::detail::DrawableCharacter;
 
 namespace {
 
@@ -75,7 +77,10 @@ std::vector<UString::const_iterator> find_chunks_dividers(const UString &);
 
 void place_renderables(const sf::Font & font, const UString & ustr,
        float width_constraint, int char_size, sf::Color color,
-       std::vector<ksg::detail::DrawableCharacter> & renderables);
+       std::vector<DrawableCharacter> & renderables);
+
+void cut_renderables(float width_constraint, float height_constraint,
+                     std::vector<DrawableCharacter> & renderables);
 
 } // end of <anonymous> namespace
 
@@ -318,22 +323,29 @@ void Text::update_geometry() {
     { return; }
 
     place_renderables(m_renderables);
+    cut_renderables  (m_renderables);
+
+    m_bounds.width = m_bounds.height = 0.f;
 
     float right_most  = -k_inf;
     float bottom_most = -k_inf;
-    m_bounds.width = m_bounds.height = 0.f;
     for (const auto & dc : m_renderables) {
         right_most  = std::max(right_most , dc.location().x + dc.width ());
         bottom_most = std::max(bottom_most, dc.location().y + dc.height());
+        assert(is_real(right_most) && is_real(bottom_most));
         assert(&dc >= &m_renderables.front() && &dc <= &m_renderables.back());
     }
-    m_bounds.width  = right_most ;
-    m_bounds.height = bottom_most;
+    m_bounds.width  = std::max(0.f, right_most );
+    m_bounds.height = std::max(0.f, bottom_most);
 }
 
 void Text::place_renderables(std::vector<detail::DrawableCharacter> & renderables) const {
     ::place_renderables(*font_ptr(), m_string, m_width_constraint,
                         m_char_size, m_color, renderables);
+}
+
+void Text::cut_renderables(std::vector<detail::DrawableCharacter> & renderables) const {
+    ::cut_renderables(m_width_constraint, m_height_constraint, renderables);
 }
 
 } // end of ksg namespace
@@ -361,7 +373,7 @@ std::vector<UString::const_iterator> find_chunks_dividers(const UString & ustr) 
 
 void place_renderables(const sf::Font & font, const UString & ustr,
        float width_constraint, int char_size, sf::Color color,
-       std::vector<ksg::detail::DrawableCharacter> & renderables)
+       std::vector<DrawableCharacter> & renderables)
 {
     renderables.clear();
 
@@ -399,6 +411,19 @@ void place_renderables(const sf::Font & font, const UString & ustr,
         }
         itr = chunk_end;
     }
+}
+
+void cut_renderables(float width_constraint, float height_constraint,
+                     std::vector<DrawableCharacter> & renderables)
+{
+    for (auto & renderable : renderables) {
+        renderable.cut_on_bottom(height_constraint);
+        renderable.cut_on_right (width_constraint );
+    }
+    renderables.erase(
+        std::remove_if(renderables.begin(), renderables.end(),
+                       [](const DrawableCharacter & dc) { return dc.whiped_out(); }),
+        renderables.end());
 }
 
 } // end of <anonymous> namespace

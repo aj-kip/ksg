@@ -79,7 +79,7 @@ void TextArea::set_location(float x, float y) {
 VectorF TextArea::location() const
     { return m_draw_text.location(); }
 
-float TextArea::width () const {
+float TextArea::width() const {
     if (is_unassigned(m_bounds.width))
         return m_draw_text.width();
     return m_bounds.width;

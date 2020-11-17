@@ -106,7 +106,9 @@ private:
     Text m_text;
     std::vector<UString> m_options;
     std::size_t m_selected_index = 0;
+#   if 0
     float m_padding = styles::get_unset_value<float>();
+#   endif
     sf::Vector2f m_size;
     BlankFunctor m_press_func = [](){};
     bool m_wrap_enabled = false;

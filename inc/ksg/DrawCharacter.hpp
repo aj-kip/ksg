@@ -88,98 +88,11 @@ public:
 private:
     void draw(sf::RenderTarget & target, sf::RenderStates states) const final;
 
+    void check_invarients() const;
+
     FixedLengthArray<sf::Vertex, 4> m_verticies;
 };
 
 } // end of detail namespace
-#if 0
-class Text;
 
-/** @brief Contains common features to both draw character and the version
- *         without advance (positional stepping) information.
- *  This class represents a single drawable character and can be treated
- *  similarly to a sprite. What makes this class notable is that it is able to
- *  partially truncate the character by "cutting" it. Methods that accomplish
- *  this are "cut_on_right" and "cut_on_bottom". Further cutting methods maybe
- *  added in the future.
- *  @warning Once a character has been cut it cannot be restored short of
- *           re-initializing the character from its original glyph.
- */
-class DrawCharacterBase : public sf::Drawable {
-public:
-    using VectorF = sf::Vector2f;
-
-    void set_color(sf::Color clr);
-
-    sf::Color color() const;
-
-    float width() const;
-
-    float height() const;
-
-    /** Cuts off part of a quad by changing its right verticies. A cut is made
-     *  by changing positions and the texture rectangle's coordinates to give a
-     *  "cut-off" effect. This will cause the right side of the character to
-     *  be omitted from rendering.
-     *  @param cut_line X-coordinate where the cut is made.
-     */
-    void cut_on_right(float cut_line);
-
-    /** Cuts off part of a quad by changing its bottom verticies. A cut is made
-     *  by changing positions and the texture rectangle's coordinates to give a
-     *  "cut-off" effect. This will cause the bottom of the character to be
-     *  omitted from rendering.
-     *  @param cut_line Y-coordinate where the cut is made.
-     */
-    void cut_on_bottom(float cut_line);
-
-    void set_location(float x, float y);
-
-    VectorF location() const;
-
-    void move(float x, float y);
-
-protected:
-    DrawCharacterBase();
-
-    DrawCharacterBase(const sf::Glyph & glyph, sf::Color clr);
-
-private:
-    void draw(sf::RenderTarget & target, sf::RenderStates states) const final;
-
-    FixedLengthArray<sf::Vertex, 4> m_verticies;
-};
-
-/** Default specialization comes with advance (positional stepping)
- *  information.
- */
-class DrawCharacter final : public DrawCharacterBase {
-public:
-    DrawCharacter();
-
-    DrawCharacter(const sf::Glyph & glyph, sf::Color clr, float kerning);
-#   if 0
-    float advance() const { return m_advance; }
-#   endif
-    float adjusted_width() const;
-private:
-#   if 0
-    float m_advance;
-#   endif
-    float m_advance = 0.f;
-    float m_kerning = 0.f;
-};
-
-namespace without_advance {
-
-/** Use this class to explicitly disable "advance" information. */
-class DrawCharacter final : public DrawCharacterBase {
-public:
-    DrawCharacter();
-
-    DrawCharacter(const sf::Glyph & glyph, sf::Color clr);
-};
-
-} // end of without_advance namespace
-#endif
 } // end of ksg namespace

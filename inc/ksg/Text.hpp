@@ -192,6 +192,9 @@ private:
 
     void place_renderables(std::vector<detail::DrawableCharacter> &) const;
 
+    // cuts/removes renderables that fall outside of width/height constraints
+    void cut_renderables(std::vector<detail::DrawableCharacter> &) const;
+
     void update_geometry();
 
     using FontMtPtr = detail::FontMtPtr;

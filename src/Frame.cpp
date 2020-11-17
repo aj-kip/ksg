@@ -356,7 +356,7 @@ void Frame::swap(Frame & lhs) {
         }
         if (is_line_seperator(widget_ptr)) {
             total_width   = std::max(line_width, total_width);
-            assert(!is_nan(total_width));
+            assert(is_real(total_width));
             line_width    = 0.f;
             total_height += line_height + m_padding;
             line_height   = 0.f;
@@ -377,18 +377,22 @@ void Frame::swap(Frame & lhs) {
         line_width  += get_widget_advance(widget_ptr) + pad_fix;
         line_height  = std::max(line_height, height);
         pad_fix = 0.f;
+        if (!is_real(line_width)) {
+            get_widget_advance(widget_ptr);
+        }
+        assert(is_real(line_width) && is_real(line_height));
     }
 
     if (line_width != 0.f) {
         total_width   = std::max(total_width, line_width);
         total_height += line_height + m_padding;
-        assert(!is_nan(total_width));
+        assert(is_real(total_width));
     }
     // we want to fit for the title's width and height also
     // accommodate for the title
     total_height += (m_border.widget_start() - m_border.location()).y;
     total_width = std::max(total_width, m_border.title_width_accommodation() + m_padding*2.f);
-    assert(!is_nan(total_width));
+    assert(is_real(total_width));
 
     if (!m_widgets.empty()) {
         // padding for borders + padding on end
@@ -458,14 +462,14 @@ void Frame::swap(Frame & lhs) {
 }
 
 /* private */ void Frame::update_horizontal_spacers() {
-    const float horz_space_c = m_border.width_available_for_widgets();
-    const float start_x_c    = 0.f;
-    assert(horz_space_c >= 0.f);
+    const float k_horz_space = m_border.width_available_for_widgets();
+    const float k_start_x    = 0.f;
+    assert(k_horz_space >= 0.f);
     // horizontal spacers:
     // will have to find out how much horizontal space is available per line
     // first. Next, if there are any horizontal spacers, each of them carries
     // an equal amount of the left over space.
-    float x = start_x_c;
+    float x = k_start_x;
     float pad_fix = 0.f;
     auto line_begin = m_widgets.begin();
     for (auto itr = m_widgets.begin(); itr != m_widgets.end(); ++itr) {
@@ -482,14 +486,14 @@ void Frame::swap(Frame & lhs) {
         float horz_step = get_widget_advance(widget_ptr);
 
         // horizontal overflow or end of widgets
-        if (x + horz_step > horz_space_c || is_line_seperator(widget_ptr)) {
+        if (x + horz_step > k_horz_space || is_line_seperator(widget_ptr)) {
             // at the end of the line, set the widths for the horizontal
             // spacers
             line_begin = set_horz_spacer_widths
-                (line_begin, itr, std::max(horz_space_c - x, 0.f), m_padding);
+                (line_begin, itr, std::max(k_horz_space - x, 0.f), m_padding);
 
             // advance to new line
-            x = start_x_c;
+            x = k_start_x;
             pad_fix = 0.f;
         } // end of horizontal overflow handling
 
@@ -500,7 +504,7 @@ void Frame::swap(Frame & lhs) {
     if (line_begin == m_widgets.end()) return;
 
     set_horz_spacer_widths
-        (line_begin, m_widgets.end(), std::max(horz_space_c - x, 0.f), m_padding);
+        (line_begin, m_widgets.end(), std::max(k_horz_space - x, 0.f), m_padding);
 }
 
 /* private */ Frame::WidgetItr Frame::set_horz_spacer_widths

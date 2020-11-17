@@ -53,7 +53,7 @@ public:
     static constexpr const int k_word_step =   2;
     static constexpr const int k_min_size  =  10;
     static constexpr const int k_max_size  = 220;
-    static constexpr const int k_size_step =  20;
+    static constexpr const int k_size_step =   5;
 
     // I want to test restricted width
     void setup();
@@ -128,8 +128,7 @@ void TestFrame::setup() {
     float w = ksg::TextArea::k_unassigned_size;
     float h = ksg::TextArea::k_unassigned_size;
 
-    set_title(U"tit");
-    //set_size(0.f, 0.f);
+    set_title(U"Just some title");
 
     using std::make_pair;
     for (auto & [wid, dim] : { make_pair(&m_width_slider, &w), make_pair(&m_height_slider, &h) }) {
