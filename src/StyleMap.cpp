@@ -56,7 +56,7 @@ StyleMap construct_system_styles() {
     StyleMap smap;
 
     // Global styles
-    add_style(smap, k_global_padding, 5.f);
+    add_style(smap, k_global_padding, Frame::k_default_padding);
 
     // Frame's default styles
     add_style(smap, Frame::k_background_color , Color(0x51, 0x51, 0x76));
