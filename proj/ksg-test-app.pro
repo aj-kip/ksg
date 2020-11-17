@@ -21,7 +21,7 @@ linux {
 debug {
     TARGET  = ksg-d
     LIBS += "-L$$PWD/../lib/cul"
-    LIBS   += -lcommon-d
+    LIBS   += -lcommon
 }
 
 SOURCES += \
@@ -43,7 +43,7 @@ SOURCES += \
     ../src/TextButton.cpp    \
     ../src/Frame.cpp         \
     ../src/SelectionMenu.cpp \
-    ../demos/nested-frames-n-sliders.cpp
+    ../demos/textarea-tests.cpp
 
 HEADERS += \
     \ # private headers

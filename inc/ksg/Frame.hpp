@@ -164,7 +164,7 @@ public:
     static constexpr const char * const k_widget_body_color = "frame-body";
     static constexpr const char * const k_border_size       = "frame-border-size";
 
-    static constexpr const float k_default_padding = 2.f;
+    static constexpr const float k_default_padding = 5.f;
 
     Frame & operator = (const Frame &);
     Frame & operator = (Frame &&);

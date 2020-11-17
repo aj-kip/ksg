@@ -38,6 +38,7 @@ public:
 
     static constexpr const char * const k_text_color = "text-area-text-color";
     static constexpr const char * const k_text_size  = "text-area-text-size" ;
+    static constexpr const float k_unassigned_size = -1.f;
 
     TextArea();
 
@@ -81,6 +82,10 @@ public:
 
     void set_height(float h);
 
+    void set_max_width(float w);
+
+    void set_max_height(float h);
+
     void set_size(float w, float h);
 
     void assign_font(const sf::Font & font);
@@ -102,6 +107,11 @@ protected:
 private:
     void recompute_geometry();
 
+    void set_max_width_no_update(float w);
+
+    void set_max_height_no_update(float h);
+
+    sf::FloatRect m_bounds = sf::FloatRect(0.f, 0.f, k_unassigned_size, k_unassigned_size);
     Text m_draw_text;
 };
 

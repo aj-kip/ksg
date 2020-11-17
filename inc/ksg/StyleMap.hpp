@@ -94,14 +94,15 @@ auto find(const StyleMap & smap, const KeyType & key) {
  *  @param key  key saught in the style map
  *  @param obj  variable to be set if both the key is found, and obj hasn't been
  *              default initialized with the "unset function"
+ *  @returns true if the key is found
  */
 template <typename T, typename KeyType>
 typename std::enable_if<StylesField::HasType<T>::k_value, bool>::
 type set_if_found(const StyleMap & smap, const KeyType & key, T & obj) {
-    if (obj != get_unset_value<T>())
-        return false;
     const T * gv = find<T>(smap, key);
-    if (gv) { obj = *gv; }
+    if (obj == get_unset_value<T>()) {
+        if (gv) { obj = *gv; }
+    }
     return gv;
 }
 

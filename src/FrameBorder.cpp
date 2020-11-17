@@ -25,6 +25,8 @@
 
 #include <SFML/Graphics/RenderTarget.hpp>
 
+#include <common/Util.hpp>
+
 #if 0
 #include <iostream>
 #endif
@@ -129,8 +131,12 @@ void FrameBorder::set_style(const StyleMap & smap) {
     }
 }
 
-void FrameBorder::set_size(float w, float h)
-    { m_back.set_size(w, h); }
+void FrameBorder::set_size(float w, float h) {
+    if (!is_real(w) || !is_real(h)) {
+        throw std::invalid_argument("FrameBorder::set_size: size values must be real numbers.");
+    }
+    m_back.set_size(w, h);
+}
 
 void FrameBorder::set_title(const UString & title_text) {
     m_title.set_string(title_text);
@@ -151,19 +157,20 @@ void FrameBorder::update_geometry() {
     const auto loc = location();
     auto w = m_back.width();
     auto h = m_back.height();
-    const float c_title_bar_height = title_height();
-    const float c_title_bar_pad = m_title.is_visible() ? outer_padding() : 0.f;
+    const float k_title_bar_height = title_height();
+    const float k_title_bar_pad = m_title.is_visible() ? outer_padding() : 0.f;
     if (m_title.is_visible()) {
         m_title_bar.set_position(loc.x + outer_padding(), loc.y + outer_padding());
-        m_title_bar.set_size(w - outer_padding()*2.f, c_title_bar_height);
+        m_title_bar.set_size(w - outer_padding()*2.f, k_title_bar_height);
         update_title_geometry(loc, m_title_bar, &m_title);
     }
     m_widget_body.set_position
         (loc.x + outer_padding(),
-         loc.y + c_title_bar_height + outer_padding() + c_title_bar_pad);
-    m_widget_body.set_size
-        (w - outer_padding()*2.f,
-         h - (c_title_bar_height + outer_padding()*2.f + c_title_bar_pad));
+         loc.y + k_title_bar_height + outer_padding() + k_title_bar_pad);
+    auto wid_body_wid = w - outer_padding()*2.f;
+    auto wid_body_hei = h - (k_title_bar_height + outer_padding()*2.f + k_title_bar_pad);
+    m_widget_body.set_size(wid_body_wid, wid_body_hei);
+    assert(is_real(wid_body_hei) && is_real(wid_body_wid));
 }
 
 float FrameBorder::title_width_accommodation() const noexcept
